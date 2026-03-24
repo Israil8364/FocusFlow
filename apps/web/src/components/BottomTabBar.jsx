@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LayoutGrid, Clock, History, Settings, BarChart2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { timerState } from '@/utils/timerState';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 
 const BottomTabBar = () => {
   const location = useLocation();
   const [sessionActive, setSessionActive] = useState(timerState.isRunning);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     return timerState.subscribe(setSessionActive);
@@ -19,59 +22,78 @@ const BottomTabBar = () => {
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
+  useGSAP(() => {
+    gsap.from(containerRef.current, {
+      y: 40,
+      opacity: 0,
+      duration: 1,
+      ease: "power4.out",
+      delay: 0.5
+    });
+  }, []);
+
   return (
-    <nav 
-      className="sm:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around px-2 pb-safe bg-[var(--card)] border-t border-[var(--border)]"
-      style={{ height: '64px', boxShadow: '0 -4px 20px rgba(0,0,0,0.06)' }}
-    >
-      {navItems.map(item => {
-        const isActive = location.pathname === item.path;
-        const isTimer = item.label === 'Timer';
-        return (
-          <Link 
-            key={item.path} 
-            to={item.path} 
-            className="flex-1 flex justify-center items-center h-full"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <div 
-              className={`flex flex-col items-center justify-center ${isActive ? 'bg-[var(--text-primary)] rounded-[100px]' : 'bg-transparent'}`}
-              style={{
-                padding: '6px 16px',
-                transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)'
+    <div className="sm:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+      <nav 
+        ref={containerRef}
+        className="flex items-center gap-1 p-2 bg-[rgba(245,246,248,0.85)] backdrop-blur-xl border border-[rgba(216,218,222,0.5)] rounded-[32px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] pointer-events-auto"
+        style={{ maxWidth: 'min(420px, 95vw)' }}
+      >
+        {navItems.map(item => {
+          const isActive = location.pathname === item.path;
+          const isTimer = item.label === 'Timer';
+          return (
+            <Link 
+              key={item.path} 
+              to={item.path} 
+              className="relative flex items-center justify-center rounded-[var(--radius-pill)] transition-all duration-300 overflow-hidden"
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                padding: isActive ? '10px 20px' : '10px 14px',
+                background: isActive ? 'var(--text-primary)' : 'transparent',
+                boxShadow: isActive ? '0 8px 16px rgba(0,0,0,0.1)' : 'none'
               }}
             >
-              <div className="relative mb-1 flex items-center justify-center">
-                <item.icon 
-                  size={20} 
-                  strokeWidth={1.8} 
-                  color={isActive ? 'var(--bg)' : 'var(--text-muted)'} 
-                  style={{ transition: 'color 200ms cubic-bezier(0.16,1,0.3,1)' }}
-                />
-                {isTimer && sessionActive && (
-                  <span 
-                    className="absolute bg-[var(--accent)] rounded-full"
-                    style={{ width: '7px', height: '7px', top: '-1px', right: '-3px' }}
+              <div className="flex items-center gap-2">
+                <div className="relative flex items-center justify-center">
+                  <item.icon 
+                    size={20} 
+                    strokeWidth={isActive ? 2.2 : 1.8} 
+                    color={isActive ? 'var(--bg)' : 'var(--text-muted)'} 
+                    style={{ transition: 'all 300ms cubic-bezier(0.16,1,0.3,1)' }}
                   />
+                  {isTimer && sessionActive && (
+                    <span 
+                      className="absolute bg-[var(--accent)] rounded-full animate-pulse"
+                      style={{ width: '6px', height: '6px', top: '-1px', right: '-1px', boxShadow: '0 0 8px var(--accent)' }}
+                    />
+                  )}
+                </div>
+                {isActive && (
+                  <span 
+                    className="font-bold text-[var(--bg)]"
+                    style={{
+                      fontSize: '12px',
+                      fontFamily: 'Inter, sans-serif',
+                      letterSpacing: '-0.01em',
+                      animation: 'fadeIn 0.3s ease-out'
+                    }}
+                  >
+                    {item.label}
+                  </span>
                 )}
               </div>
-              <span 
-                className="font-medium leading-none"
-                style={{
-                  fontSize: '10px',
-                  fontFamily: 'Inter, sans-serif',
-                  letterSpacing: '0.02em',
-                  color: isActive ? 'var(--bg)' : 'var(--text-muted)',
-                  transition: 'color 200ms cubic-bezier(0.16,1,0.3,1)'
-                }}
-              >
-                {item.label}
-              </span>
-            </div>
-          </Link>
-        );
-      })}
-    </nav>
+            </Link>
+          );
+        })}
+      </nav>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateX(-4px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+    </div>
   );
 };
 

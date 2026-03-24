@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext.jsx';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/AuthLeftPanel.jsx';
 import { LogoMark } from '@/components/Logo.jsx';
+import LoadingAnimation from '@/components/LoadingAnimation.jsx';
 
 const C = {
   bg: '#e9eaec',
@@ -79,10 +80,10 @@ const EyeIcon = ({ show, onClick }) => (
   </span>
 );
 
-const Input = ({ type = 'text', placeholder, value, onChange, required, disabled, rightElement }) => {
+const Input = ({ type = 'text', placeholder, value, onChange, required, disabled, rightElement, error }) => {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', marginBottom: error ? 20 : 0 }}>
       <input
         type={type}
         placeholder={placeholder}
@@ -95,7 +96,7 @@ const Input = ({ type = 'text', placeholder, value, onChange, required, disabled
         style={{
           width: '100%', height: 48,
           background: C.card,
-          border: `1px solid ${focused ? C.borderFocus : C.border}`,
+          border: `1px solid ${error ? '#ef4444' : (focused ? C.borderFocus : C.border)}`,
           borderRadius: 8, padding: rightElement ? '0 44px 0 16px' : '0 16px',
           color: C.primary, fontSize: 14,
           fontFamily: 'Inter, sans-serif', outline: 'none',
@@ -105,11 +106,20 @@ const Input = ({ type = 'text', placeholder, value, onChange, required, disabled
       />
       {rightElement && (
         <span style={{
-          position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+          position: 'absolute', right: 14, top: '50%', transform: `translateY(-50%)`,
           color: C.placeholder, cursor: 'pointer', display: 'flex', alignItems: 'center',
         }}>
           {rightElement}
         </span>
+      )}
+      {error && (
+        <p style={{
+          position: 'absolute', left: 0, top: 48,
+          color: '#ef4444', fontSize: 11, fontWeight: 500,
+          margin: 0, marginTop: 4, animation: 'fadeIn 0.2s'
+        }}>
+          {error}
+        </p>
       )}
     </div>
   );
@@ -127,6 +137,7 @@ const ResetPasswordPage = () => {
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
   const [token, setToken] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ password: '', passwordConfirm: '' });
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -141,12 +152,14 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFieldErrors({ password: '', passwordConfirm: '' });
+
     if (password !== passwordConfirm) {
-      toast.error('Passwords do not match');
+      setFieldErrors(prev => ({ ...prev, passwordConfirm: 'Passwords do not match' }));
       return;
     }
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 8 characters' }));
       return;
     }
 
@@ -163,6 +176,7 @@ const ResetPasswordPage = () => {
 
   return (
     <>
+      {loading && <LoadingAnimation />}
       <SuccessModal isOpen={showSuccess} onClose={() => navigate('/login')} />
       <Helmet>
         <title>New Password - FocusFlow</title>
@@ -204,12 +218,14 @@ const ResetPasswordPage = () => {
                   value={password} onChange={e => setPassword(e.target.value)}
                   required disabled={loading}
                   rightElement={<EyeIcon show={showPw} onClick={() => setShowPw(p => !p)} />}
+                  error={fieldErrors.password}
                 />
                  <Input
                   type={showPwConfirm ? 'text' : 'password'} placeholder="Confirm New Password"
                   value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)}
                   required disabled={loading}
                   rightElement={<EyeIcon show={showPwConfirm} onClick={() => setShowPwConfirm(p => !p)} />}
+                  error={fieldErrors.passwordConfirm}
                 />
               </div>
 

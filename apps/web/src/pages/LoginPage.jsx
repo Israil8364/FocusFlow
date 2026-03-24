@@ -9,6 +9,7 @@ import pb from '@/lib/pocketbaseClient';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/AuthLeftPanel.jsx';
 import { LogoMark } from '@/components/Logo.jsx';
+import LoadingAnimation from '@/components/LoadingAnimation.jsx';
 
 const C = {
   bg: '#e9eaec',
@@ -23,10 +24,10 @@ const C = {
   accent: '#e8372a',
 };
 
-const Input = ({ type = 'text', placeholder, value, onChange, required, disabled, rightElement }) => {
+const Input = ({ type = 'text', placeholder, value, onChange, required, disabled, rightElement, error }) => {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', marginBottom: error ? 20 : 0 }}>
       <input
         type={type}
         placeholder={placeholder}
@@ -39,7 +40,7 @@ const Input = ({ type = 'text', placeholder, value, onChange, required, disabled
         style={{
           width: '100%', height: 48,
           background: C.card,
-          border: `1px solid ${focused ? C.borderFocus : C.border}`,
+          border: `1px solid ${error ? '#ef4444' : (focused ? C.borderFocus : C.border)}`,
           borderRadius: 8, padding: '0 44px 0 16px',
           color: C.primary, fontSize: 14,
           fontFamily: 'Inter, sans-serif', outline: 'none',
@@ -49,11 +50,20 @@ const Input = ({ type = 'text', placeholder, value, onChange, required, disabled
       />
       {rightElement && (
         <span style={{
-          position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+          position: 'absolute', right: 14, top: '50%', transform: `translateY(-50%)`,
           color: C.placeholder, cursor: 'pointer', display: 'flex', alignItems: 'center',
         }}>
           {rightElement}
         </span>
+      )}
+      {error && (
+        <p style={{
+          position: 'absolute', left: 0, top: 50,
+          color: '#ef4444', fontSize: 12, fontWeight: 500,
+          margin: 0, marginTop: 4, animation: 'fadeIn 0.2s'
+        }}>
+          {error}
+        </p>
       )}
     </div>
   );
@@ -135,6 +145,7 @@ const LoginPage = () => {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const containerRef = useRef(null);
 
   useGSAP(() => {
@@ -175,23 +186,28 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setFieldErrors({ email: '', password: '' });
+    
     try {
       const authData = await login(email, password);
       
       if (!authData.record.verified) {
-        // Option 1: Logout and tell them to verify
-        // logout(); // We might need to import logout
-        // navigate('/verification-pending', { state: { email } });
-        
-        // Option 2: Just show a message but stay logged in? Pocketbase usually requires verification for some rules.
-        // Let's go with redirecting them to pending page
         navigate('/verification-pending', { state: { email } });
         return;
       }
       
       navigate('/');
     } catch (err) {
-      toast.error(err.message || 'Invalid email or password');
+      console.error('Login error:', err);
+      const msg = err.message?.toLowerCase() || '';
+      
+      if (msg.includes('identity') || msg.includes('email') || msg.includes('not found')) {
+        setFieldErrors(prev => ({ ...prev, email: 'Account with this email not found' }));
+      } else if (msg.includes('password') || msg.includes('credential') || msg.includes('authenticate')) {
+        setFieldErrors(prev => ({ ...prev, password: 'Wrong email or password' }));
+      } else {
+        toast.error(err.message || 'Invalid email or password');
+      }
     } finally {
       setLoading(false);
     }
@@ -212,6 +228,7 @@ const LoginPage = () => {
 
   return (
     <>
+      {loading && <LoadingAnimation />}
       <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} />
       <Helmet>
         <title>Sign In - FocusFlow</title>
@@ -260,6 +277,7 @@ const LoginPage = () => {
                   type="email" placeholder="Email"
                   value={email} onChange={e => setEmail(e.target.value)}
                   required disabled={loading}
+                  error={fieldErrors.email}
                 />
                 <Input
                   type={showPw ? 'text' : 'password'}
@@ -267,6 +285,7 @@ const LoginPage = () => {
                   value={password} onChange={e => setPassword(e.target.value)}
                   required disabled={loading}
                   rightElement={<EyeIcon show={showPw} onClick={() => setShowPw(p => !p)} />}
+                  error={fieldErrors.password}
                 />
               </div>
 

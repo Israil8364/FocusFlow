@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext.jsx';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/AuthLeftPanel.jsx';
 import { LogoMark } from '@/components/Logo.jsx';
+import LoadingAnimation from '@/components/LoadingAnimation.jsx';
 
 const C = {
   bg: '#e9eaec',
@@ -22,10 +23,10 @@ const C = {
   accent: '#e8372a',
 };
 
-const Input = ({ type = 'text', placeholder, value, onChange, required, disabled, rightElement }) => {
+const Input = ({ type = 'text', placeholder, value, onChange, required, disabled, rightElement, error }) => {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', marginBottom: error ? 20 : 0 }}>
       <input
         type={type}
         placeholder={placeholder}
@@ -38,7 +39,7 @@ const Input = ({ type = 'text', placeholder, value, onChange, required, disabled
         style={{
           width: '100%', height: 48,
           background: C.card,
-          border: `1px solid ${focused ? C.borderFocus : C.border}`,
+          border: `1px solid ${error ? '#ef4444' : (focused ? C.borderFocus : C.border)}`,
           borderRadius: 8, padding: '0 44px 0 16px',
           color: C.primary, fontSize: 14,
           fontFamily: 'Inter, sans-serif', outline: 'none',
@@ -48,11 +49,20 @@ const Input = ({ type = 'text', placeholder, value, onChange, required, disabled
       />
       {rightElement && (
         <span style={{
-          position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+          position: 'absolute', right: 14, top: '50%', transform: `translateY(-50%)`,
           color: C.placeholder, cursor: 'pointer', display: 'flex', alignItems: 'center',
         }}>
           {rightElement}
         </span>
+      )}
+      {error && (
+        <p style={{
+          position: 'absolute', left: 0, top: 48,
+          color: '#ef4444', fontSize: 11, fontWeight: 500,
+          margin: 0, marginTop: 4, animation: 'fadeIn 0.2s'
+        }}>
+          {error}
+        </p>
       )}
     </div>
   );
@@ -87,6 +97,7 @@ const SignupPage = () => {
   const [agreed, setAgreed] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '', firstName: '', lastName: '' });
   const containerRef = useRef(null);
 
   useGSAP(() => {
@@ -103,16 +114,28 @@ const SignupPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFieldErrors({ email: '', password: '', firstName: '', lastName: '' });
+
     if (!agreed) { toast.error('Please accept the Terms & Conditions'); return; }
-    if (password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    if (password.length < 8) { 
+        setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 8 characters' }));
+        return; 
+    }
+    
     setLoading(true);
     try {
       const fullName = `${firstName} ${lastName}`.trim();
       await signup(email, password, password, fullName);
-      // Pass email to verification page
       navigate('/verification-pending', { state: { email } });
     } catch (err) {
-      toast.error(err.message || 'Failed to create account');
+      console.error('Signup error:', err);
+      const msg = err.message?.toLowerCase() || '';
+      
+      if (msg.includes('email') || msg.includes('identity')) {
+        setFieldErrors(prev => ({ ...prev, email: 'Email already exists or invalid' }));
+      } else {
+        toast.error(err.message || 'Failed to create account');
+      }
     } finally {
       setLoading(false);
     }
@@ -133,6 +156,7 @@ const SignupPage = () => {
 
   return (
     <>
+      {loading && <LoadingAnimation />}
       <Helmet>
         <title>Create Account - FocusFlow</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -179,15 +203,15 @@ const SignupPage = () => {
 
                 <div className="animate-item" style={{ display: 'flex', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} disabled={loading} />
+                    <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} disabled={loading} error={fieldErrors.firstName} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <Input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} disabled={loading} />
+                    <Input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} disabled={loading} error={fieldErrors.lastName} />
                   </div>
                 </div>
 
                 <div className="animate-item">
-                  <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required disabled={loading} />
+                  <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required disabled={loading} error={fieldErrors.email} />
                 </div>
                 
                 <div className="animate-item">
@@ -197,6 +221,7 @@ const SignupPage = () => {
                     value={password} onChange={e => setPassword(e.target.value)}
                     required disabled={loading}
                     rightElement={<EyeIcon show={showPw} onClick={() => setShowPw(p => !p)} />}
+                    error={fieldErrors.password}
                   />
                 </div>
 

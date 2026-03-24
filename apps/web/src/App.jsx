@@ -1,12 +1,13 @@
 import React from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
-import { AuthProvider } from '@/contexts/AuthContext.jsx';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext.jsx';
 import { SettingsProvider } from '@/contexts/SettingsContext.jsx';
 import { TimerProvider } from '@/contexts/TimerContext.jsx';
 import { Toaster } from 'sonner';
 import ScrollToTop from '@/components/ScrollToTop.jsx';
 import ProtectedRoute from '@/components/ProtectedRoute.jsx';
 import LenisScroll from '@/components/LenisScroll.jsx';
+import LoadingAnimation from '@/components/LoadingAnimation.jsx';
 import HomePage from '@/pages/HomePage.jsx';
 import LoginPage from '@/pages/LoginPage.jsx';
 import SignupPage from '@/pages/SignupPage.jsx';
@@ -41,6 +42,33 @@ const DashboardLayout = ({ children }) => {
   );
 };
 
+const AppRoutes = () => {
+    const { initialLoading } = useAuth();
+
+    if (initialLoading) {
+        return <LoadingAnimation />;
+    }
+
+    return (
+        <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/verification-pending" element={<VerificationPendingPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            
+            <Route path="/" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/timer" element={<ProtectedRoute><DashboardLayout><TimerPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/history" element={<ProtectedRoute><DashboardLayout><HistoryPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><DashboardLayout><AnalyticsPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><DashboardLayout><SettingsPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
+        </Routes>
+    );
+}
+
 function App() {
   return (
     <Router>
@@ -49,28 +77,13 @@ function App() {
           <TimerProvider>
             <LenisScroll>
               <ScrollToTop />
-              <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/verification-pending" element={<VerificationPendingPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              
-              <Route path="/" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/timer" element={<ProtectedRoute><DashboardLayout><TimerPage /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><DashboardLayout><HistoryPage /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><DashboardLayout><AnalyticsPage /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><DashboardLayout><SettingsPage /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
-              <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
-            </Routes>
-          </LenisScroll>
-          <Toaster 
-            toastOptions={{
-                className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',
-              }}
-            />
+              <AppRoutes />
+            </LenisScroll>
+            <Toaster 
+              toastOptions={{
+                  className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',
+                }}
+              />
           </TimerProvider>
         </SettingsProvider>
       </AuthProvider>
@@ -78,4 +91,4 @@ function App() {
   );
 }
 
-export default App;
+export default App;
