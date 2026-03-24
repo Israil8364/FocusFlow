@@ -1,0 +1,209 @@
+import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet';
+import { Plus } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext.jsx';
+import pb from '@/lib/pocketbaseClient';
+import NeuomorphicTimerRing from '@/components/NeuomorphicTimerRing.jsx';
+import CategoryRow from '@/components/CategoryRow.jsx';
+import StatChip from '@/components/StatChip.jsx';
+import { formatTime } from '@/utils/formatTime';
+import { toast } from 'sonner';
+import AddTaskModal from '@/components/AddTaskModal.jsx';
+import { useSettings } from '@/contexts/SettingsContext.jsx';
+import { useTimerContext } from '@/contexts/TimerContext.jsx';
+
+const HomePage = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [stats, setStats] = useState({ pomodorosToday: 0, focusTimeToday: 0, dailyGoal: 60 });
+  
+  const { settings } = useSettings();
+  const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession } = useTimerContext();
+
+  useEffect(() => {
+    const fetchTasksAndStats = async () => {
+      try {
+        const [taskRecords, sessionRecords] = await Promise.all([
+          pb.collection('tasks').getFullList({
+            filter: `userId = "${currentUser.id}" && isCompleted = false`,
+            sort: '-created',
+            $autoCancel: false
+          }),
+          pb.collection('sessions').getFullList({
+            filter: `userId = "${currentUser.id}" && type = "pomodoro" && completed = true`,
+            $autoCancel: false
+          })
+        ]);
+        
+        setTasks(taskRecords);
+
+        // Calculate today's stats
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        let pomos = 0;
+        let focusTime = 0;
+        sessionRecords.forEach(r => {
+          if (new Date(r.date).toLocaleDateString('en-CA') === todayStr) {
+            pomos++;
+            focusTime += r.duration;
+          }
+        });
+        setStats({ pomodorosToday: pomos, focusTimeToday: focusTime, dailyGoal: 60 });
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+    if (currentUser) fetchTasksAndStats();
+  }, [currentUser, sessionCompletedSignal]);
+
+
+
+  const toggleTask = async (id) => {
+    const task = tasks.find(t => t.id === id);
+    try {
+      await pb.collection('tasks').update(id, { isCompleted: !task.isCompleted }, { $autoCancel: false });
+      setTasks(tasks.filter(t => t.id !== id));
+      toast.success('Task completed!');
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      await pb.collection('tasks').delete(id, { $autoCancel: false });
+      setTasks(tasks.filter(t => t.id !== id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <>
+      <Helmet>
+        <title>Dashboard - FocusFlow</title>
+      </Helmet>
+
+      <div className="max-w-5xl mx-auto p-4 md:p-8 lg:p-12 space-y-12 animate-in fade-in duration-300">
+        
+        <header>
+          <h1 className="text-display text-[var(--text-primary)]">Welcome, {currentUser?.name || 'User'}</h1>
+          <p className="text-body text-[var(--text-muted)] mt-2">Ready for a productive session?</p>
+        </header>
+
+        <section className="flex flex-col items-center bg-[var(--card)] p-8 rounded-[var(--radius-lg)] shadow-neu-sm border border-[var(--border)]">
+          <div className="flex gap-4 mb-8">
+            {modes.map(m => (
+              <button
+                key={m.id}
+                onClick={() => { setMode(m.id); setIsRunning(false); }}
+                className={`text-sm font-medium pb-1 border-b-2 transition-colors capitalize ${mode === m.id ? 'border-[var(--text-primary)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          <NeuomorphicTimerRing 
+            progress={((duration - timeLeft) / duration) * 100} 
+            time={formatTime(timeLeft)} 
+            mode={mode} 
+            isRunning={isRunning} 
+          />
+
+          <div className="mt-10 flex gap-4">
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              className="px-8 py-3 rounded-[var(--radius-pill)] bg-[var(--text-primary)] text-[var(--bg)] font-medium shadow-neu hover:-translate-y-0.5 transition-all active:scale-95"
+            >
+              {isRunning ? 'Pause Session' : 'Start Session'}
+            </button>
+            <button
+              onClick={skipSession}
+              className="px-6 py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium transition-colors"
+            >
+              Skip &rarr;
+            </button>
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-heading">Today's Tasks</h2>
+            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-pill)] bg-[var(--bg)] border border-[var(--border)] text-sm font-medium shadow-sm hover:shadow-neu-sm transition-all active:scale-95">
+              <Plus className="w-4 h-4" /> Add Task
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {loadingTasks ? (
+              [1,2].map(i => <div key={i} className="h-16 bg-[var(--card)] rounded-[var(--radius-md)] animate-pulse border border-[var(--border)]"></div>)
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-10 text-[var(--text-muted)] bg-[var(--card)] rounded-[var(--radius-md)] border border-[var(--border)] border-dashed">
+                No tasks for today. Enjoy your free time!
+              </div>
+            ) : (
+              tasks.map(task => (
+                <CategoryRow 
+                  key={task.id} 
+                  task={task} 
+                  onToggle={toggleTask} 
+                  onDelete={deleteTask} 
+                />
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
+          <Link to="/history" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
+            <StatChip label="Pomodoros Today" value={stats.pomodorosToday.toString()} />
+          </Link>
+          <Link to="/analytics" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
+            <StatChip label="Focus Time" value={`${stats.focusTimeToday}m`} />
+          </Link>
+          <Link to="/timer" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
+            <StatChip 
+              label="Daily Goal" 
+              value={`${Math.min(Math.round((stats.focusTimeToday / stats.dailyGoal) * 100), 100)}%`} 
+              subLabel={stats.focusTimeToday >= stats.dailyGoal ? 'Goal reached!' : 'Almost there!'} 
+            />
+          </Link>
+        </section>
+
+      </div>
+
+      <AddTaskModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={async ({ title, note, estimatedPomodoros, category }) => {
+          try {
+            const record = await pb.collection('tasks').create({
+              userId: currentUser.id,
+              title,
+              note: note || '',
+              estimatedPomodoros: estimatedPomodoros || 1,
+              completedPomodoros: 0,
+              category: category || 'sage',
+              isCompleted: false,
+            }, { $autoCancel: false });
+            setTasks(prev => [record, ...prev]);
+            toast.success('Task added!');
+          } catch (err) {
+            console.error('Add task error:', err);
+            toast.error('Failed to add task');
+            throw err;
+          }
+        }}
+      />
+    </>
+  );
+};
+
+export default HomePage;
