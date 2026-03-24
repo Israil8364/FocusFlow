@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { Helmet } from 'react-helmet';
 import { Plus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -23,6 +25,31 @@ const HomePage = () => {
   
   const { settings } = useSettings();
   const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession } = useTimerContext();
+  const masterRef = useRef(null);
+  const timerRingRef = useRef(null);
+  const plusIconRef = useRef(null);
+
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    tl.from(".gsap-header", { y: -20, opacity: 0, duration: 0.8, ease: "power3.out" })
+      .from(".gsap-timer", { scale: 0.95, opacity: 0, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.4")
+      .from(".gsap-tasks", { y: 20, opacity: 0, duration: 0.8, ease: "power3.out" }, "-=0.6")
+      .from(".gsap-stats > div", { y: 20, opacity: 0, duration: 0.6, stagger: 0.1, ease: "power3.out" }, "-=0.6");
+  }, { scope: masterRef });
+
+  useGSAP(() => {
+    if (isRunning) {
+      gsap.to(timerRingRef.current, {
+        scale: 1.02,
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+      });
+    } else {
+      gsap.to(timerRingRef.current, { scale: 1, duration: 0.5 });
+    }
+  }, [isRunning]);
 
   useEffect(() => {
     const fetchTasksAndStats = async () => {
@@ -90,14 +117,14 @@ const HomePage = () => {
         <title>Dashboard - FocusFlow</title>
       </Helmet>
 
-      <div className="max-w-5xl mx-auto p-4 md:p-8 lg:p-12 space-y-12 animate-in fade-in duration-300">
+      <div ref={masterRef} className="max-w-5xl mx-auto p-4 md:p-8 lg:p-12 space-y-12 animate-in fade-in duration-300">
         
-        <header>
+        <header className="gsap-header">
           <h1 className="text-display text-[var(--text-primary)]">Welcome, {currentUser?.name || 'User'}</h1>
           <p className="text-body text-[var(--text-muted)] mt-2">Ready for a productive session?</p>
         </header>
 
-        <section className="flex flex-col items-center bg-[var(--card)] p-8 rounded-[var(--radius-lg)] shadow-neu-sm border border-[var(--border)]">
+        <section className="gsap-timer flex flex-col items-center bg-[var(--card)] p-8 rounded-[var(--radius-lg)] shadow-neu-sm border border-[var(--border)]">
           <div className="flex gap-4 mb-8">
             {modes.map(m => (
               <button
@@ -110,12 +137,14 @@ const HomePage = () => {
             ))}
           </div>
 
-          <NeuomorphicTimerRing 
-            progress={((duration - timeLeft) / duration) * 100} 
-            time={formatTime(timeLeft)} 
-            mode={mode} 
-            isRunning={isRunning} 
-          />
+          <div ref={timerRingRef}>
+            <NeuomorphicTimerRing 
+              progress={((duration - timeLeft) / duration) * 100} 
+              time={formatTime(timeLeft)} 
+              mode={mode} 
+              isRunning={isRunning} 
+            />
+          </div>
 
           <div className="mt-10 flex gap-4">
             <button
@@ -133,11 +162,19 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section>
+        <section className="gsap-tasks">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-heading">Today's Tasks</h2>
-            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-pill)] bg-[var(--bg)] border border-[var(--border)] text-sm font-medium shadow-sm hover:shadow-neu-sm transition-all active:scale-95">
-              <Plus className="w-4 h-4" /> Add Task
+            <button 
+              onClick={() => setShowAddModal(true)} 
+              onMouseEnter={() => gsap.to(plusIconRef.current, { rotation: 90, duration: 0.3, ease: "power2.out" })}
+              onMouseLeave={() => gsap.to(plusIconRef.current, { rotation: 0, duration: 0.3, ease: "power2.in" })}
+              className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-pill)] bg-[var(--bg)] border border-[var(--border)] text-sm font-medium shadow-sm hover:shadow-neu-sm transition-all active:scale-95"
+            >
+              <div ref={plusIconRef}>
+                <Plus className="w-4 h-4" />
+              </div> 
+              Add Task
             </button>
           </div>
           
@@ -161,7 +198,7 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
+        <section className="gsap-stats grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
           <Link to="/history" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
             <StatChip label="Pomodoros Today" value={stats.pomodorosToday.toString()} />
           </Link>

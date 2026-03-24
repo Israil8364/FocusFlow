@@ -1,10 +1,37 @@
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 
 const NeuomorphicTimerRing = ({ progress, time, mode, isRunning }) => {
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
+  const circleRef = useRef(null);
+  const dotRef = useRef(null);
+
+  useGSAP(() => {
+    gsap.to(circleRef.current, {
+      strokeDashoffset: strokeDashoffset,
+      duration: 1,
+      ease: "power2.out"
+    });
+  }, [progress]);
+
+  useGSAP(() => {
+    if (isRunning) {
+      gsap.to(dotRef.current, {
+        opacity: 0.5,
+        scale: 1.2,
+        duration: 1,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+      });
+    } else {
+      gsap.to(dotRef.current, { opacity: 1, scale: 1, duration: 0.5 });
+    }
+  }, [isRunning]);
 
   const dotColor = mode === 'pomodoro'
     ? '#f07832'
@@ -41,6 +68,7 @@ const NeuomorphicTimerRing = ({ progress, time, mode, isRunning }) => {
         })}
         {/* Progress Ring */}
         <circle
+          ref={circleRef}
           cx="140"
           cy="140"
           r={radius}
@@ -48,15 +76,15 @@ const NeuomorphicTimerRing = ({ progress, time, mode, isRunning }) => {
           strokeWidth="4"
           fill="none"
           strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-1000 ease-linear"
+          strokeDashoffset={circumference}
           strokeLinecap="round"
         />
       </svg>
 
       <div className="relative z-10 flex flex-col items-center">
         <div
-          className={`w-2.5 h-2.5 rounded-[var(--radius-circle)] mb-3 transition-colors duration-300 ${isRunning ? 'animate-pulse' : ''}`}
+          ref={dotRef}
+          className={`w-2.5 h-2.5 rounded-[var(--radius-circle)] mb-3 transition-colors duration-300`}
           style={{ 
             backgroundColor: dotColor, 
             boxShadow: isRunning ? `0 0 12px ${dotColor}` : 'none' 

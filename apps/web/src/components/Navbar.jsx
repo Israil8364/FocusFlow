@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { User, Settings, LogOut, ChevronRight } from 'lucide-react';
 import { LogoMark } from './Logo.jsx';
 import { useAuth } from '@/contexts/AuthContext.jsx';
@@ -25,6 +27,27 @@ const Navbar = () => {
     logout();
     navigate('/login');
   };
+
+  const dropdownMenuRef = useRef(null);
+
+  useGSAP(() => {
+    if (isDropdownOpen) {
+      gsap.fromTo(dropdownMenuRef.current, 
+        { 
+          opacity: 0, 
+          y: -10,
+          scale: 0.95
+        }, 
+        { 
+          opacity: 1, 
+          y: 0, 
+          scale: 1,
+          duration: 0.3,
+          ease: "back.out(1.7)"
+        }
+      );
+    }
+  }, [isDropdownOpen]);
 
   const avatarUrl = currentUser?.avatar 
     ? pb.files.getUrl(currentUser, currentUser.avatar)
@@ -60,7 +83,7 @@ const Navbar = () => {
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-[var(--card)] rounded-[var(--radius-md)] shadow-neu border border-[var(--border)] py-2 z-50">
+            <div ref={dropdownMenuRef} className="absolute right-0 mt-2 w-48 bg-[var(--card)] rounded-[var(--radius-md)] shadow-neu border border-[var(--border)] py-2 z-50 origin-top-right">
               <div className="px-4 py-2 border-b border-[var(--border)] mb-2">
                 <p className="text-sm font-medium text-[var(--text-primary)] truncate">{currentUser?.name || 'User'}</p>
                 <p className="text-xs text-[var(--text-muted)] truncate">{currentUser?.email}</p>
@@ -71,7 +94,7 @@ const Navbar = () => {
               <Link to="/settings" className="flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors" onClick={() => setIsDropdownOpen(false)}>
                 <Settings className="w-4 h-4" /> Settings
               </Link>
-              <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-tomato hover:bg-[var(--bg)] transition-colors text-left">
+              <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-tomato hover:bg-[var(--bg)] transition-colors text-left font-medium">
                 <LogOut className="w-4 h-4" /> Logout
               </button>
             </div>

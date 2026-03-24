@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Check, Trash2, Edit2 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { toast } from 'sonner';
 import TaskFormModal from './TaskFormModal';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 
 const COLORS = {
   red: '#e8372a',
@@ -34,9 +36,40 @@ const CategoryRow = ({ task, onToggle, onDelete }) => {
     }
   };
 
+  const rowRef = useRef(null);
+
+  useGSAP(() => {
+    // Initial state handled by CSS opacity-0, but we can enhance it
+  }, { scope: rowRef });
+
+  const onEnter = () => {
+    gsap.to(".gsap-action", {
+      opacity: 1,
+      x: 0,
+      stagger: 0.05,
+      duration: 0.3,
+      ease: "power2.out"
+    });
+  };
+
+  const onLeave = () => {
+    gsap.to(".gsap-action", {
+      opacity: 0,
+      x: 5,
+      stagger: 0.05,
+      duration: 0.2,
+      ease: "power2.in"
+    });
+  };
+
   return (
     <>
-      <div className="group relative flex items-center justify-between p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-level-1 hover:shadow-level-2 transition-all duration-200 hover:scale-[1.01] overflow-hidden border border-[var(--border)]">
+      <div 
+        ref={rowRef}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+        className="group relative flex items-center justify-between p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-level-1 hover:shadow-level-2 transition-all duration-200 hover:scale-[1.01] overflow-hidden border border-[var(--border)]"
+      >
         <div className="absolute right-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: colorValue }}></div>
 
         <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -70,14 +103,14 @@ const CategoryRow = ({ task, onToggle, onDelete }) => {
           </span>
           <button
             onClick={() => setIsEditModalOpen(true)}
-            className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-200 p-1"
+            className="gsap-action opacity-0 transform translate-x-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-200 p-1"
             aria-label="Edit task"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--accent)] transition-all duration-200 p-1"
+            className="gsap-action opacity-0 transform translate-x-2 text-[var(--text-muted)] hover:text-[var(--accent)] transition-all duration-200 p-1"
             aria-label="Delete task"
           >
             <Trash2 className="w-4 h-4" />

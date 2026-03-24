@@ -1,6 +1,8 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 
 const ConfirmationModal = ({ 
   isOpen, 
@@ -12,16 +14,32 @@ const ConfirmationModal = ({
   cancelText = "Cancel",
   isDanger = true
 }) => {
+  const overlayRef = useRef(null);
+  const modalRef = useRef(null);
+
+  useGSAP(() => {
+    if (isOpen) {
+      gsap.fromTo(overlayRef.current, 
+        { opacity: 0 }, 
+        { opacity: 1, duration: 0.3, ease: "power2.out" }
+      );
+      gsap.fromTo(modalRef.current, 
+        { scale: 0.8, opacity: 0, y: 20 }, 
+        { scale: 1, opacity: 1, y: 0, duration: 0.4, ease: "back.out(1.7)" }
+      );
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div style={{
+    <div ref={overlayRef} style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
     }}>
       <div 
-        className="animate-in zoom-in duration-200"
+        ref={modalRef}
         style={{
           background: '#fff', borderRadius: 20, padding: 32,
           width: '100%', maxWidth: 420, textAlign: 'center',

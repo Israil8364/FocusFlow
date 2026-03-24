@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
@@ -133,6 +135,19 @@ const LoginPage = () => {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const containerRef = useRef(null);
+
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    tl.from(".animate-item", {
+      y: 20,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.1,
+      ease: "expo.out",
+      delay: 0.2
+    });
+  }, { scope: containerRef });
 
   // Handle verification token from URL
   React.useEffect(() => {
@@ -226,21 +241,21 @@ const LoginPage = () => {
           padding: '48px 64px', position: 'relative'
         }}>
 
-          <div style={{ width: '100%', maxWidth: 420 }}>
-            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }} className="sm:hidden">
+          <div ref={containerRef} style={{ width: '100%', maxWidth: 420 }}>
+            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }} className="sm:hidden animate-item">
               <LogoMark size={48} className="text-black" />
             </div>
 
-            <h1 style={{ fontWeight: 700, fontSize: 36, color: C.primary, letterSpacing: '-0.02em', margin: '0 0 10px' }}>
+            <h1 className="animate-item" style={{ fontWeight: 700, fontSize: 36, color: C.primary, letterSpacing: '-0.02em', margin: '0 0 10px' }}>
               Welcome back
             </h1>
-            <p style={{ fontSize: 14, color: C.muted, margin: '0 0 32px' }}>
+            <p className="animate-item" style={{ fontSize: 14, color: C.muted, margin: '0 0 32px' }}>
               Don't have an account?{' '}
               <Link to="/signup" style={{ color: C.muted, textDecoration: 'underline' }}>Sign up</Link>
             </p>
 
             <form onSubmit={handleSubmit}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="animate-item" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <Input
                   type="email" placeholder="Email"
                   value={email} onChange={e => setEmail(e.target.value)}
@@ -255,73 +270,79 @@ const LoginPage = () => {
                 />
               </div>
 
-              <div style={{ textAlign: 'right', marginTop: 10 }}>
+              <div className="animate-item" style={{ textAlign: 'right', marginTop: 10 }}>
                 <Link to="/forgot-password" style={{ fontSize: 13, color: C.muted, textDecoration: 'underline' }}>
                   Forgot password?
                 </Link>
               </div>
 
-              <button type="submit" disabled={loading} className="cta-btn" style={{
-                width: '100%', height: 52, marginTop: 24,
-                background: C.cta, border: 'none', borderRadius: 8,
-                color: '#fff', fontWeight: 600, fontSize: 15,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background 0.18s, transform 0.12s',
-                opacity: loading ? 0.7 : 1,
-              }}>
-                {loading ? 'Signing in…' : 'Sign in'}
-              </button>
+              <div className="animate-item">
+                <button type="submit" disabled={loading} className="cta-btn" style={{
+                  width: '100%', height: 52, marginTop: 24,
+                  background: C.cta, border: 'none', borderRadius: 8,
+                  color: '#fff', fontWeight: 600, fontSize: 15,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.18s, transform 0.12s',
+                  opacity: loading ? 0.7 : 1,
+                }}>
+                  {loading ? 'Signing in…' : 'Sign in'}
+                </button>
+              </div>
             </form>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
+            <div className="animate-item" style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
               <div style={{ flex: 1, height: 1, background: C.border }} />
               <span style={{ fontSize: 12, color: C.muted, whiteSpace: 'nowrap' }}>Or sign in with</span>
               <div style={{ flex: 1, height: 1, background: C.border }} />
             </div>
 
-            <button 
-              className="sso-btn" 
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              style={{
-              width: '100%', height: 48,
-              background: C.card, border: `1px solid ${C.border}`,
-              borderRadius: 8, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: 10,
-              color: C.primary, fontWeight: 600, fontSize: 14,
-              cursor: loading ? 'not-allowed' : 'pointer', transition: 'background 0.18s',
-            }}>
-              <GoogleG />
-              Continue with Google
-            </button>
+            <div className="animate-item">
+              <button 
+                className="sso-btn" 
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                style={{
+                width: '100%', height: 48,
+                background: C.card, border: `1px solid ${C.border}`,
+                borderRadius: 8, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 10,
+                color: C.primary, fontWeight: 600, fontSize: 14,
+                cursor: loading ? 'not-allowed' : 'pointer', transition: 'background 0.18s',
+              }}>
+                <GoogleG />
+                Continue with Google
+              </button>
+            </div>
 
             {/* Guest mode separator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 0' }}>
+            <div className="animate-item" style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 0' }}>
               <div style={{ flex: 1, height: 1, background: C.border }} />
               <span style={{ fontSize: 12, color: C.muted, whiteSpace: 'nowrap' }}>or</span>
               <div style={{ flex: 1, height: 1, background: C.border }} />
             </div>
 
-            <button
-              className="guest-btn"
-              onClick={() => { continueAsGuest(); navigate('/'); }}
-              style={{
-                width: '100%', height: 48, marginTop: 12,
-                background: 'transparent',
-                border: `1.5px dashed ${C.border}`,
-                borderRadius: 8, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: 10,
-                color: C.muted, fontWeight: 600, fontSize: 14,
-                cursor: 'pointer', transition: 'background 0.18s, border-color 0.18s, color 0.18s',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              Continue as Guest
-            </button>
-            <p style={{ textAlign: 'center', fontSize: 11, color: C.placeholder, marginTop: 8 }}>
+            <div className="animate-item">
+              <button
+                className="guest-btn"
+                onClick={() => { continueAsGuest(); navigate('/'); }}
+                style={{
+                  width: '100%', height: 48, marginTop: 12,
+                  background: 'transparent',
+                  border: `1.5px dashed ${C.border}`,
+                  borderRadius: 8, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: 10,
+                  color: C.muted, fontWeight: 600, fontSize: 14,
+                  cursor: 'pointer', transition: 'background 0.18s, border-color 0.18s, color 0.18s',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Continue as Guest
+              </button>
+            </div>
+            <p className="animate-item" style={{ textAlign: 'center', fontSize: 11, color: C.placeholder, marginTop: 8 }}>
               Guest data is saved in this browser only
             </p>
 
