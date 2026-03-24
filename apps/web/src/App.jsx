@@ -6,6 +6,7 @@ import { TimerProvider } from '@/contexts/TimerContext.jsx';
 import { Toaster } from 'sonner';
 import ScrollToTop from '@/components/ScrollToTop.jsx';
 import ProtectedRoute from '@/components/ProtectedRoute.jsx';
+import LenisScroll from '@/components/LenisScroll.jsx';
 import HomePage from '@/pages/HomePage.jsx';
 import LoginPage from '@/pages/LoginPage.jsx';
 import SignupPage from '@/pages/SignupPage.jsx';
@@ -26,12 +27,12 @@ import GuestBanner from '@/components/GuestBanner.jsx';
 
 const DashboardLayout = ({ children }) => {
   return (
-    <div className="flex flex-col h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans">
       <GuestBanner />
       <Navbar />
-      <div className="flex flex-1 overflow-hidden relative">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto pb-[64px] md:pb-0">
+      <div className="flex flex-1 relative">
+        <Sidebar className="sticky top-[64px] h-[calc(100vh-64px)]" />
+        <main className="flex-1 pb-[64px] md:pb-0">
           {children}
         </main>
       </div>
@@ -46,8 +47,9 @@ function App() {
       <AuthProvider>
         <SettingsProvider>
           <TimerProvider>
-            <ScrollToTop />
-            <Routes>
+            <LenisScroll>
+              <ScrollToTop />
+              <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/verification-pending" element={<VerificationPendingPage />} />
@@ -63,8 +65,9 @@ function App() {
               <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
               <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
             </Routes>
-            <Toaster 
-              toastOptions={{
+          </LenisScroll>
+          <Toaster 
+            toastOptions={{
                 className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',
               }}
             />
