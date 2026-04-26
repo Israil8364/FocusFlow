@@ -124,6 +124,8 @@ const SignupPage = () => {
     
     setLoading(true);
     try {
+      // Assuming signup function in useAuth now takes (email, password, passwordConfirm, name)
+      // and passwordConfirm is the same as password for signup, and name is fullName
       const fullName = `${firstName} ${lastName}`.trim();
       await signup(email, password, password, fullName);
       navigate('/verification-pending', { state: { email } });
@@ -131,10 +133,16 @@ const SignupPage = () => {
       console.error('Signup error:', err);
       const msg = err.message?.toLowerCase() || '';
       
-      if (msg.includes('email') || msg.includes('identity')) {
-        setFieldErrors(prev => ({ ...prev, email: 'Email already exists or invalid' }));
+      if (msg.includes('rate limit')) {
+        toast.error('Too many requests. Please wait a few minutes before trying again.');
+      } else if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('already in use')) {
+        setFieldErrors(prev => ({ ...prev, email: 'This email is already registered' }));
+      } else if (msg.includes('unable to send confirmation email') || msg.includes('smtp')) {
+        toast.error('SMTP Error: Failed to send verification email. Please check your Hostinger SMTP credentials in the Supabase Dashboard.');
+      } else if (msg.includes('password')) {
+        setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 8 characters' }));
       } else {
-        toast.error(err.message || 'Failed to create account');
+        toast.error(err.message || 'Something went wrong. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -145,11 +153,10 @@ const SignupPage = () => {
     setLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/');
+      // loginWithGoogle redirects the entire page.
     } catch (err) {
       if (err.isAbort) return;
       toast.error(err.message || 'Google signup failed');
-    } finally {
       setLoading(false);
     }
   };

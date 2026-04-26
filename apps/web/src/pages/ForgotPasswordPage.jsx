@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/AuthLeftPanel.jsx';
 import { LogoMark } from '@/components/Logo.jsx';
 import LoadingAnimation from '@/components/LoadingAnimation.jsx';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 
 const C = {
   bg: '#e9eaec',
@@ -73,14 +73,16 @@ const ForgotPasswordPage = () => {
     setError('');
     
     try {
-      // Step 1: Check if user exists
-      // Using pb directly to check for existence
-      const result = await pb.collection('users').getList(1, 1, {
-        filter: `email = "${email}"`,
-        base : 'users'
-      });
+      // Step 1: Check if user exists in public profiles
+      const { data, error: profileErr } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
 
-      if (result.totalItems === 0) {
+      if (profileErr) throw profileErr;
+
+      if (!data) {
         setError('Account with this email not found');
         setLoading(false);
         return;
@@ -93,21 +95,10 @@ const ForgotPasswordPage = () => {
     } catch (err) {
       console.error('Password reset error:', err);
       const msg = err.message?.toLowerCase() || '';
-      
-      // Secondary check in case getList is restricted but we still want to handle the error
-      if (msg.includes('not found') || msg.includes('email')) {
-          setError('Account with this email not found');
-      } else if (msg.includes('forbidden') || msg.includes('authorize')) {
-          // Fallback if List permission is restricted: just try to send and show error if it fails
-          try {
-             await requestPasswordReset(email);
-             setSubmitted(true);
-             toast.success('Reset link sent to your email!');
-          } catch (resetErr) {
-             setError('Account with this email not found');
-          }
+      if (msg.includes('unable to send')) {
+        toast.error('SMTP Error: Could not send reset link. Please check your Dashboard SMTP settings.');
       } else {
-          toast.error(err.message || 'Failed to send reset link');
+        toast.error(err.message || 'Failed to send reset email. Please try again.');
       }
     } finally {
       setLoading(false);

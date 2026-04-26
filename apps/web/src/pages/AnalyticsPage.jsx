@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { Link } from 'react-router-dom';
 import { Play, History } from 'lucide-react';
@@ -16,11 +16,14 @@ const AnalyticsPage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const allRecords = await pb.collection('sessions').getFullList({
-          filter: `userId = "${currentUser.id}" && type = "pomodoro" && completed = true`,
-          sort: '-date',
-          $autoCancel: false
-        });
+        const { data: allRecords, error } = await supabase
+          .from('sessions')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .eq('type', 'pomodoro')
+          .order('date', { ascending: false });
+
+        if (error) throw error;
 
         const now = new Date();
         const cutoffDate = new Date();
@@ -35,17 +38,17 @@ const AnalyticsPage = () => {
         const avgSessionLength = totalPomodoros ? Math.round(totalFocusTime / totalPomodoros) : 0;
         
         // Compute streak (all-time)
-        const activeDates = new Set(allRecords.map(r => new Date(r.date).toLocaleDateString('en-CA')));
+        const activeDates = new Set(allRecords.map(r => r.date));
         let currentStreak = 0;
         let d = new Date();
         while (true) {
-          const dateStr = d.toLocaleDateString('en-CA');
+          const dateStr = d.toISOString().split('T')[0];
           if (activeDates.has(dateStr)) {
             currentStreak++;
             d.setDate(d.getDate() - 1);
-          } else if (currentStreak === 0 && d.toLocaleDateString('en-CA') === new Date().toLocaleDateString('en-CA')) {
+          } else if (currentStreak === 0 && dateStr === new Date().toISOString().split('T')[0]) {
             d.setDate(d.getDate() - 1);
-            if (!activeDates.has(d.toLocaleDateString('en-CA'))) break;
+            if (!activeDates.has(d.toISOString().split('T')[0])) break;
           } else {
             break;
           }
@@ -59,7 +62,6 @@ const AnalyticsPage = () => {
         if (timeRange === 'Week') {
           chartTitle = 'Weekly Focus Time';
           trendTitle = '7-Day Trend';
-          // Compute weekly data (last 7 days)
           const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           const weeklyDataMap = { 'Mon':0, 'Tue':0, 'Wed':0, 'Thu':0, 'Fri':0, 'Sat':0, 'Sun':0 };
           records.forEach(r => {
@@ -72,8 +74,8 @@ const AnalyticsPage = () => {
           for (let i = 6; i >= 0; i--) {
              const dt = new Date();
              dt.setDate(dt.getDate() - i);
-             const dtStr = dt.toLocaleDateString('en-CA');
-             const mins = records.filter(r => new Date(r.date).toLocaleDateString('en-CA') === dtStr).reduce((a, c) => a + c.duration, 0);
+             const dtStr = dt.toISOString().split('T')[0];
+             const mins = records.filter(r => r.date === dtStr).reduce((a, c) => a + c.duration, 0);
              trendData.push({ name: days[dt.getDay()], minutes: mins });
           }
         } else if (timeRange === 'Month') {
@@ -93,8 +95,8 @@ const AnalyticsPage = () => {
           for (let i = 29; i >= 0; i--) {
              const dt = new Date();
              dt.setDate(dt.getDate() - i);
-             const dtStr = dt.toLocaleDateString('en-CA');
-             const mins = records.filter(r => new Date(r.date).toLocaleDateString('en-CA') === dtStr).reduce((a, c) => a + c.duration, 0);
+             const dtStr = dt.toISOString().split('T')[0];
+             const mins = records.filter(r => r.date === dtStr).reduce((a, c) => a + c.duration, 0);
              trendData.push({ name: dt.getDate(), minutes: mins });
           }
         } else if (timeRange === 'Year') {
@@ -115,23 +117,15 @@ const AnalyticsPage = () => {
           trendData = [...barChartData];
         }
 
-        // Compute category data
-        const catMap = {};
-        records.forEach(r => {
-           const cat = r.category || 'General';
-           catMap[cat] = (catMap[cat] || 0) + r.duration;
-        });
-        
-        const COLORS = ['var(--cobalt)', 'var(--sage)', 'var(--amber)', 'var(--violet)', 'var(--tomato)', 'var(--text-primary)'];
-        let colorIdx = 0;
-        const categoryData = Object.keys(catMap).map(k => ({ 
-          name: k, 
-          value: catMap[k], 
-          color: COLORS[colorIdx++ % COLORS.length] 
-        }));
+        // Category breakdown (using a default for now since sessions don't have categories)
+        const categoryData = [
+          { name: 'Focus', value: totalFocusTime, color: 'var(--cobalt)' }
+        ];
 
-        if (categoryData.length === 0) {
-          categoryData.push({name: 'No Data', value: 1, color: 'var(--border)'});
+        if (totalFocusTime === 0) {
+          categoryData[0].value = 1;
+          categoryData[0].color = 'var(--border)';
+          categoryData[0].name = 'No Data';
         }
 
         setStats({
@@ -152,11 +146,36 @@ const AnalyticsPage = () => {
       }
     };
 
-    if (currentUser) fetchStats();
+    if (currentUser) {
+      fetchStats();
+    } else {
+      setStats({
+        totalPomodoros: 0,
+        totalFocusTime: 0,
+        currentStreak: 0,
+        avgSessionLength: 0,
+        barChartData: [],
+        categoryData: [{ name: 'No Data', value: 1, color: 'var(--border)' }],
+        trendData: [],
+        chartTitle: 'No Data',
+        trendTitle: 'No Trend'
+      });
+      setLoading(false);
+    }
   }, [currentUser, timeRange]);
 
-  if (loading || !stats) {
+  if (loading) {
     return <div className="p-8 text-center text-[var(--text-muted)]">Loading analytics...</div>;
+  }
+
+  if (!stats) {
+    return (
+      <div className="max-w-6xl mx-auto p-8 text-center">
+        <h1 className="text-heading mb-4">No Data Available</h1>
+        <p className="text-body text-[var(--text-muted)] mb-8">Start your first focus session to see your analytics!</p>
+        <Link to="/timer" className="btn-primary inline-flex items-center gap-2">Go to Timer</Link>
+      </div>
+    );
   }
 
   return (

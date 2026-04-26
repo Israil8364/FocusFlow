@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useSettings } from '@/contexts/SettingsContext.jsx';
 import { toast } from 'sonner';
@@ -52,11 +52,12 @@ const SettingsPage = () => {
     setShowClearHistoryModal(false);
     setSaving(true);
     try {
-      const records = await pb.collection('sessions').getFullList({
-        filter: `userId = "${currentUser.id}"`,
-        $autoCancel: false
-      });
-      await Promise.all(records.map(record => pb.collection('sessions').delete(record.id, { $autoCancel: false })));
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
       toast.success('History cleared successfully');
     } catch (error) {
       console.error('Error clearing history:', error);

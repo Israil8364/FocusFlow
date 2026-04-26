@@ -5,7 +5,7 @@ import { useGSAP } from "@gsap/react";
 import { User, Settings, LogOut, ChevronRight } from 'lucide-react';
 import { LogoMark } from './Logo.jsx';
 import { useAuth } from '@/contexts/AuthContext.jsx';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
@@ -50,7 +50,7 @@ const Navbar = () => {
   }, [isDropdownOpen]);
 
   const avatarUrl = currentUser?.avatar 
-    ? pb.files.getUrl(currentUser, currentUser.avatar)
+    ? currentUser.avatar.startsWith('http') ? currentUser.avatar : supabase.storage.from('avatars').getPublicUrl(currentUser.avatar).data.publicUrl
     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.id || 'default'}&backgroundColor=f0ede8`;
 
   return (

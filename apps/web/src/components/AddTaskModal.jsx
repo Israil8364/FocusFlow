@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Lock, Plus, ChevronRight, Minus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Color dots mapped to valid PocketBase 'category' select values
+// Color dots mapped to valid 'category' values in Supabase
 const CATEGORIES = [
   { id: 'tomato', hex: '#e8372a', label: 'Tomato' },
   { id: 'sage',   hex: '#3aaa6e', label: 'Sage'   },

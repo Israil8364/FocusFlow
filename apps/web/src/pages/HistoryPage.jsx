@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { format } from 'date-fns';
-import { Calendar, Clock, CheckCircle2, XCircle, History, BarChart2, Play, Trash2 } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, History, BarChart2, Play, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import ConfirmationModal from '@/components/ConfirmationModal.jsx';
@@ -19,7 +19,13 @@ const HistoryPage = () => {
   const handleDelete = async () => {
     if (!sessionToDelete) return;
     try {
-      await pb.collection('sessions').delete(sessionToDelete, { $autoCancel: false });
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('id', sessionToDelete);
+
+      if (error) throw error;
+
       setSessions(prev => prev.filter(s => s.id !== sessionToDelete));
       toast.success('Session deleted');
     } catch(error) {
@@ -33,12 +39,15 @@ const HistoryPage = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const records = await pb.collection('sessions').getFullList({
-          filter: `userId = "${currentUser.id}"`,
-          sort: '-date',
-          $autoCancel: false
-        });
-        setSessions(records);
+        const { data, error } = await supabase
+          .from('sessions')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setSessions(data);
       } catch (error) {
         console.error('Error fetching history:', error);
       } finally {
@@ -46,7 +55,11 @@ const HistoryPage = () => {
       }
     };
 
-    if (currentUser) fetchHistory();
+    if (currentUser) {
+      fetchHistory();
+    } else {
+      setLoading(false);
+    }
   }, [currentUser]);
 
   const filteredSessions = sessions.filter(s => {
@@ -96,7 +109,7 @@ const HistoryPage = () => {
           <div className="bg-[var(--card)] p-6 rounded-[var(--radius-md)] shadow-neu-sm border border-[var(--border)]">
             <div className="text-eyebrow text-[var(--text-muted)] mb-2">Avg Session</div>
             <div className="text-stat">
-              {sessions.length ? Math.round(totalFocusTime / sessions.filter(s=>s.type==='pomodoro').length || 0) : 0} <span className="text-body font-normal text-[var(--text-muted)]">min</span>
+              {sessions.filter(s=>s.type==='pomodoro').length ? Math.round(totalFocusTime / sessions.filter(s=>s.type==='pomodoro').length) : 0} <span className="text-body font-normal text-[var(--text-muted)]">min</span>
             </div>
           </div>
         </div>
@@ -134,22 +147,17 @@ const HistoryPage = () => {
                     <div>
                       <div className="font-medium text-[var(--text-primary)] capitalize flex items-center gap-2">
                         {session.type === 'pomodoro' ? 'Focus Session' : 'Break'}
-                        {session.completed ? (
-                          <CheckCircle2 className="w-4 h-4 text-sage" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-tomato" />
-                        )}
+                        <CheckCircle2 className="w-4 h-4 text-sage" />
                       </div>
                       <div className="text-sm text-[var(--text-muted)] flex items-center gap-3 mt-1">
-                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {format(new Date(session.date), 'MMM d, yyyy')}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {format(new Date(session.date), 'h:mm a')}</span>
+                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {format(new Date(session.created_at), 'MMM d, yyyy')}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {format(new Date(session.created_at), 'h:mm a')}</span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex flex-row items-center gap-4">
                     <div className="text-right">
                       <div className="font-bold text-lg text-[var(--text-primary)]">{session.duration}m</div>
-                      <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">{session.category || 'General'}</div>
                     </div>
                     <button 
                       onClick={() => setSessionToDelete(session.id)}

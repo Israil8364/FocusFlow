@@ -23,9 +23,17 @@ const C = {
 const VerificationPendingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { resendVerification } = useAuth();
+  const { resendVerification, currentUser } = useAuth();
   const email = location.state?.email || '';
   const [loading, setLoading] = useState(false);
+
+  // Auto-redirect if user becomes authenticated (e.g. after clicking link in another tab)
+  React.useEffect(() => {
+    if (currentUser) {
+      navigate('/', { replace: true });
+      toast.success('Email verified successfully!');
+    }
+  }, [currentUser, navigate]);
 
   const handleResend = async () => {
     if (!email) {

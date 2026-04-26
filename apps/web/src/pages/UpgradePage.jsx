@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext.jsx';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 
 const PLANS = [
   {
@@ -53,7 +53,7 @@ const UpgradePage = () => {
   const [selectedPlan, setSelectedPlan] = useState('pro');
 
   const avatarUrl = currentUser?.avatar
-    ? pb.files.getUrl(currentUser, currentUser.avatar)
+    ? currentUser.avatar.startsWith('http') ? currentUser.avatar : supabase.storage.from('avatars').getPublicUrl(currentUser.avatar).data.publicUrl
     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.id || 'default'}&backgroundColor=f0ede8`;
 
   return (

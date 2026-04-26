@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/AuthLeftPanel.jsx';
 import { LogoMark } from '@/components/Logo.jsx';
@@ -160,28 +160,8 @@ const LoginPage = () => {
     });
   }, { scope: containerRef });
 
-  // Handle verification token from URL
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    
-    if (token) {
-      const verifyToken = async () => {
-        setLoading(true);
-        try {
-          await pb.collection('users').confirmVerification(token);
-          setShowSuccessModal(true);
-          // Remove token from URL without refreshing
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (err) {
-          toast.error('Verification failed or link expired.');
-        } finally {
-          setLoading(false);
-        }
-      };
-      verifyToken();
-    }
-  }, []);
+  // Note: Supabase handles verification automatically via redirects.
+  // Success modals can be triggered by checking the URL for specific events if needed.
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -191,7 +171,7 @@ const LoginPage = () => {
     try {
       const authData = await login(email, password);
       
-      if (!authData.record.verified) {
+      if (!authData.user.email_confirmed_at) {
         navigate('/verification-pending', { state: { email } });
         return;
       }
@@ -201,10 +181,10 @@ const LoginPage = () => {
       console.error('Login error:', err);
       const msg = err.message?.toLowerCase() || '';
       
-      if (msg.includes('identity') || msg.includes('email') || msg.includes('not found')) {
-        setFieldErrors(prev => ({ ...prev, email: 'Account with this email not found' }));
-      } else if (msg.includes('password') || msg.includes('credential') || msg.includes('authenticate')) {
-        setFieldErrors(prev => ({ ...prev, password: 'Wrong email or password' }));
+      if (msg.includes('invalid login credentials') || msg.includes('not found') || msg.includes('invalid grant') || msg.includes('invalid login')) {
+        setFieldErrors(prev => ({ ...prev, email: 'Invalid email or password' }));
+      } else if (msg.includes('unable to send')) {
+        toast.error('SMTP Error: Could not send magic link or email. Please check your SMTP settings.');
       } else {
         toast.error(err.message || 'Invalid email or password');
       }
@@ -217,11 +197,11 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/');
+      // loginWithGoogle redirects the entire page, so code after this point
+      // will not execute until the user returns from Google.
     } catch (err) {
-      if (err.isAbort) return; // Simple abort (popup closed)
+      if (err.isAbort) return; 
       toast.error(err.message || 'Google login failed');
-    } finally {
       setLoading(false);
     }
   };

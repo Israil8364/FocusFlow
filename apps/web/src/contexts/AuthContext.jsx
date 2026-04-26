@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 
 const AuthContext = createContext(null);
 const GUEST_KEY = 'focusflow_guest';
@@ -14,32 +14,100 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [isGuest, setIsGuest] = useState(() => localStorage.getItem(GUEST_KEY) === 'true');
+  const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(localStorage.getItem(GUEST_KEY) === 'true');
+
+  console.log('🛡️ AuthProvider Render - Loading:', loading, 'IsGuest:', isGuest);
+
+  const fetchProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      return null;
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      // Add a timeout to getSession to prevent hanging
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('getSession timeout')), 3000)
+      );
+      
+      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        setCurrentUser({
+          ...session.user,
+          ...profile,
+          name: profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
+          avatar: profile?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+          verified: !!session.user.email_confirmed_at
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    } catch (err) {
+      console.error('❌ refreshUser error:', err);
+    }
+  };
 
   useEffect(() => {
-    if (pb.authStore.isValid) {
-      setCurrentUser(pb.authStore.model);
-    }
-    setInitialLoading(false);
+    const initializeAuth = async () => {
+      setLoading(true);
+      
+      // Safety timeout: if auth takes more than 1.5 seconds, force stop loading
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ Auth initialization timed out after 1.5s. Forcing UI to load.');
+        setLoading(false);
+      }, 1500);
 
-    const unsubscribe = pb.authStore.onChange((token, model) => {
-      setCurrentUser(model);
+      try {
+        await refreshUser();
+      } finally {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 Auth State Event:', event, 'User:', session?.user?.email || 'None');
+      
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
+        await refreshUser();
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+      }
+      setLoading(false);
     });
 
     return () => {
-      unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
   const login = async (email, password) => {
     try {
-      const authData = await pb.collection('users').authWithPassword(email, password);
-      // Clear guest mode when user logs in properly
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
       localStorage.removeItem(GUEST_KEY);
-      setIsGuest(false);
-      setCurrentUser(authData.record);
-      return authData;
+      await refreshUser();
+      return data;
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -48,17 +116,21 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (email, password, passwordConfirm, name) => {
     try {
-      const user = await pb.collection('users').create({
+      if (password !== passwordConfirm) {
+        throw new Error('Passwords do not match');
+      }
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        passwordConfirm,
-        name: name || email.split('@')[0],
+        options: {
+          data: {
+            full_name: name || email.split('@')[0],
+          },
+          emailRedirectTo: window.location.origin
+        }
       });
-      
-      // Trigger verification email
-      await pb.collection('users').requestVerification(email);
-      
-      return user;
+      if (error) throw error;
+      return data.user;
     } catch (error) {
       console.error('Signup failed:', error);
       throw error;
@@ -67,7 +139,14 @@ export const AuthProvider = ({ children }) => {
 
   const resendVerification = async (email) => {
     try {
-      await pb.collection('users').requestVerification(email);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
       return true;
     } catch (error) {
       console.error('Resend verification failed:', error);
@@ -77,21 +156,24 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithGoogle = async () => {
     try {
-      const authData = await pb.collection('users').authWithOAuth2({ provider: 'google' });
-      
-      // Clear guest mode when user logs in with Google
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
       localStorage.removeItem(GUEST_KEY);
       setIsGuest(false);
-      setCurrentUser(authData.record);
-      return authData;
+      return data;
     } catch (error) {
       console.error('Google login failed:', error);
       throw error;
     }
   };
 
-  const logout = () => {
-    pb.authStore.clear();
+  const logout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem(GUEST_KEY);
     setCurrentUser(null);
     setIsGuest(false);
@@ -104,7 +186,10 @@ export const AuthProvider = ({ children }) => {
 
   const requestPasswordReset = async (email) => {
     try {
-      await pb.collection('users').requestPasswordReset(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
       return true;
     } catch (error) {
       console.error('Password reset request failed:', error);
@@ -112,9 +197,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const confirmPasswordReset = async (token, password, passwordConfirm) => {
+  const confirmPasswordReset = async (password) => {
     try {
-      await pb.collection('users').confirmPasswordReset(token, password, passwordConfirm);
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+      if (error) throw error;
       return true;
     } catch (error) {
       console.error('Password reset confirmation failed:', error);
@@ -126,7 +214,8 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     isAuthenticated: !!currentUser,
     isGuest,
-    initialLoading,
+    loading,
+    initialLoading: loading,
     login,
     signup,
     loginWithGoogle,
@@ -135,6 +224,7 @@ export const AuthProvider = ({ children }) => {
     confirmPasswordReset,
     logout,
     continueAsGuest,
+    refreshProfile: refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 import { Plus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import NeuomorphicTimerRing from '@/components/NeuomorphicTimerRing.jsx';
 import CategoryRow from '@/components/CategoryRow.jsx';
 import StatChip from '@/components/StatChip.jsx';
@@ -54,26 +54,42 @@ const HomePage = () => {
   useEffect(() => {
     const fetchTasksAndStats = async () => {
       try {
-        const [taskRecords, sessionRecords] = await Promise.all([
-          pb.collection('tasks').getFullList({
-            filter: `userId = "${currentUser.id}" && isCompleted = false`,
-            sort: '-created',
-            $autoCancel: false
-          }),
-          pb.collection('sessions').getFullList({
-            filter: `userId = "${currentUser.id}" && type = "pomodoro" && completed = true`,
-            $autoCancel: false
-          })
+        const [taskResponse, sessionResponse] = await Promise.all([
+          supabase
+            .from('tasks')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('is_completed', false)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('sessions')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('type', 'pomodoro')
         ]);
         
-        setTasks(taskRecords);
+        if (taskResponse.error) throw taskResponse.error;
+        if (sessionResponse.error) throw sessionResponse.error;
+
+        // Map tasks to camelCase
+        const mappedTasks = taskResponse.data.map(t => ({
+          id: t.id,
+          title: t.title,
+          estimatedPomodoros: t.estimated_pomodoros,
+          completedPomodoros: t.completed_pomodoros,
+          isCompleted: t.is_completed,
+          category: t.category,
+          note: t.note
+        }));
+        
+        setTasks(mappedTasks);
 
         // Calculate today's stats
         const todayStr = new Date().toLocaleDateString('en-CA');
         let pomos = 0;
         let focusTime = 0;
-        sessionRecords.forEach(r => {
-          if (new Date(r.date).toLocaleDateString('en-CA') === todayStr) {
+        sessionResponse.data.forEach(r => {
+          if (r.date === todayStr) {
             pomos++;
             focusTime += r.duration;
           }
@@ -86,15 +102,22 @@ const HomePage = () => {
         setLoadingTasks(false);
       }
     };
-    if (currentUser) fetchTasksAndStats();
+    if (currentUser) {
+      fetchTasksAndStats();
+    } else {
+      setLoadingTasks(false);
+    }
   }, [currentUser, sessionCompletedSignal]);
-
-
 
   const toggleTask = async (id) => {
     const task = tasks.find(t => t.id === id);
     try {
-      await pb.collection('tasks').update(id, { isCompleted: !task.isCompleted }, { $autoCancel: false });
+      const { error } = await supabase
+        .from('tasks')
+        .update({ is_completed: !task.isCompleted })
+        .eq('id', id);
+
+      if (error) throw error;
       setTasks(tasks.filter(t => t.id !== id));
       toast.success('Task completed!');
     } catch (error) {
@@ -104,7 +127,12 @@ const HomePage = () => {
 
   const deleteTask = async (id) => {
     try {
-      await pb.collection('tasks').delete(id, { $autoCancel: false });
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
       setTasks(tasks.filter(t => t.id !== id));
     } catch (error) {
       console.error(error);
@@ -221,15 +249,32 @@ const HomePage = () => {
         onClose={() => setShowAddModal(false)}
         onAdd={async ({ title, note, estimatedPomodoros, category }) => {
           try {
-            const record = await pb.collection('tasks').create({
-              userId: currentUser.id,
-              title,
-              note: note || '',
-              estimatedPomodoros: estimatedPomodoros || 1,
-              completedPomodoros: 0,
-              category: category || 'sage',
-              isCompleted: false,
-            }, { $autoCancel: false });
+            const { data, error } = await supabase
+              .from('tasks')
+              .insert({
+                user_id: currentUser.id,
+                title,
+                note: note || '',
+                estimated_pomodoros: estimatedPomodoros || 1,
+                completed_pomodoros: 0,
+                category: category || 'sage',
+                is_completed: false,
+              })
+              .select()
+              .single();
+
+            if (error) throw error;
+            
+            const record = {
+              id: data.id,
+              title: data.title,
+              note: data.note,
+              estimatedPomodoros: data.estimated_pomodoros,
+              completedPomodoros: data.completed_pomodoros,
+              category: data.category,
+              isCompleted: data.is_completed
+            };
+
             setTasks(prev => [record, ...prev]);
             toast.success('Task added!');
           } catch (err) {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useSettings } from '@/contexts/SettingsContext.jsx';
 import { toast } from 'sonner';
@@ -126,14 +126,14 @@ export function TimerProvider({ children }) {
     if (currentUser) {
       try {
         const durMins = Math.floor(duration / 60);
-        await pb.collection('sessions').create({
-          userId: currentUser.id,
+        const { error } = await supabase.from('sessions').insert({
+          user_id: currentUser.id,
           duration: durMins,
           type: mode,
-          date: new Date().toISOString(),
-          completed: true,
-          category: 'sage'
-        }, { $autoCancel: false });
+          date: new Date().toISOString().split('T')[0], // Use YYYY-MM-DD for date column
+        });
+        
+        if (error) throw error;
         
         toast.success(`${mode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`);
         notifyTimerComplete(mode, settings?.notificationsEnabled, settings?.soundEnabled, settings?.soundType);

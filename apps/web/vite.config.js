@@ -5,7 +5,6 @@ import inlineEditPlugin from './plugins/visual-editor/vite-plugin-react-inline-e
 import editModeDevPlugin from './plugins/visual-editor/vite-plugin-edit-mode.js';
 import selectionModePlugin from './plugins/selection-mode/vite-plugin-selection-mode.js';
 import iframeRouteRestorationPlugin from './plugins/vite-plugin-iframe-route-restoration.js';
-import pocketbaseAuthPlugin from './plugins/vite-plugin-pocketbase-auth.js';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -266,7 +265,7 @@ const addTransformIndexHtml = {
 	},
 };
 
-console.warn = () => {};
+// console.warn = () => {};
 
 const logger = createLogger()
 const loggerError = logger.error
@@ -282,7 +281,7 @@ logger.error = (msg, options) => {
 export default defineConfig({
 	customLogger: logger,
 	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), selectionModePlugin(), iframeRouteRestorationPlugin(), pocketbaseAuthPlugin()] : []),
+		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), selectionModePlugin(), iframeRouteRestorationPlugin()] : []),
 		react(),
 		addTransformIndexHtml
 	],
@@ -290,16 +289,8 @@ export default defineConfig({
 		port: 3000,
 		cors: true,
 		headers: {
-			'Cross-Origin-Embedder-Policy': 'credentialless',
 		},
-		allowedHosts: true,
-		proxy: {
-			'/hcgi/platform': {
-				target: 'http://127.0.0.1:8090',
-				changeOrigin: true,
-				rewrite: (path) => path.replace(/^\/hcgi\/platform/, '')
-			}
-		}
+		allowedHosts: true
 	},
 	resolve: {
 		extensions: ['.jsx', '.js', '.tsx', '.ts', '.json', ],

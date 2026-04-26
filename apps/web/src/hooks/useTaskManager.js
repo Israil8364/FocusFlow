@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 
 export const useTaskManager = (userId) => {
   const [tasks, setTasks] = useState([]);
@@ -17,12 +17,30 @@ export const useTaskManager = (userId) => {
     try {
       setLoading(true);
       setError(null);
-      const records = await pb.collection('tasks').getFullList({
-        filter: `userId = "${userId}"`,
-        sort: 'order,createdAt',
-        $autoCancel: false
-      });
-      setTasks(records);
+      const { data, error: err } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .order('order', { ascending: true })
+        .order('created_at', { ascending: true });
+
+      if (err) throw err;
+      
+      // Map snake_case to camelCase
+      const mappedTasks = data.map(t => ({
+        id: t.id,
+        title: t.title,
+        estimatedPomodoros: t.estimated_pomodoros,
+        completedPomodoros: t.completed_pomodoros,
+        userId: t.user_id,
+        isCompleted: t.is_completed,
+        order: t.order,
+        category: t.category,
+        note: t.note,
+        createdAt: t.created_at
+      }));
+
+      setTasks(mappedTasks);
     } catch (err) {
       console.error('Failed to fetch tasks:', err);
       setError(err.message);
@@ -40,16 +58,35 @@ export const useTaskManager = (userId) => {
 
     try {
       const maxOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order || 0)) : 0;
-      const newTask = await pb.collection('tasks').create({
-        title,
-        estimatedPomodoros,
-        completedPomodoros: 0,
-        userId,
-        isCompleted: false,
-        order: maxOrder + 1,
-        category: options.category || 'red',
-        note: options.note || ''
-      }, { $autoCancel: false });
+      const { data, error: err } = await supabase
+        .from('tasks')
+        .insert({
+          title,
+          estimated_pomodoros: estimatedPomodoros,
+          completed_pomodoros: 0,
+          user_id: userId,
+          is_completed: false,
+          order: maxOrder + 1,
+          category: options.category || 'red',
+          note: options.note || ''
+        })
+        .select()
+        .single();
+      
+      if (err) throw err;
+
+      const newTask = {
+        id: data.id,
+        title: data.title,
+        estimatedPomodoros: data.estimated_pomodoros,
+        completedPomodoros: data.completed_pomodoros,
+        userId: data.user_id,
+        isCompleted: data.is_completed,
+        order: data.order,
+        category: data.category,
+        note: data.note,
+        createdAt: data.created_at
+      };
       
       setTasks(prev => [...prev, newTask]);
       return newTask;
@@ -62,7 +99,38 @@ export const useTaskManager = (userId) => {
 
   const updateTask = async (taskId, updates) => {
     try {
-      const updated = await pb.collection('tasks').update(taskId, updates, { $autoCancel: false });
+      // Map camelCase to snake_case for updates
+      const dbUpdates = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.estimatedPomodoros !== undefined) dbUpdates.estimated_pomodoros = updates.estimatedPomodoros;
+      if (updates.completedPomodoros !== undefined) dbUpdates.completed_pomodoros = updates.completedPomodoros;
+      if (updates.isCompleted !== undefined) dbUpdates.is_completed = updates.isCompleted;
+      if (updates.order !== undefined) dbUpdates.order = updates.order;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.note !== undefined) dbUpdates.note = updates.note;
+
+      const { data, error: err } = await supabase
+        .from('tasks')
+        .update(dbUpdates)
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (err) throw err;
+
+      const updated = {
+        id: data.id,
+        title: data.title,
+        estimatedPomodoros: data.estimated_pomodoros,
+        completedPomodoros: data.completed_pomodoros,
+        userId: data.user_id,
+        isCompleted: data.is_completed,
+        order: data.order,
+        category: data.category,
+        note: data.note,
+        createdAt: data.created_at
+      };
+
       setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
       return updated;
     } catch (err) {
@@ -74,7 +142,13 @@ export const useTaskManager = (userId) => {
 
   const deleteTask = async (taskId) => {
     try {
-      await pb.collection('tasks').delete(taskId, { $autoCancel: false });
+      const { error: err } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (err) throw err;
+
       setTasks(prev => prev.filter(t => t.id !== taskId));
       if (activeTaskId === taskId) {
         setActiveTaskId(null);
@@ -111,22 +185,21 @@ export const useTaskManager = (userId) => {
     const [removed] = result.splice(startIndex, 1);
     result.splice(endIndex, 0, removed);
 
-    const updates = result.map((task, index) => ({
-      id: task.id,
-      order: index
-    }));
-
+    // Optimistically update UI
+    const previousTasks = [...tasks];
     setTasks(result);
 
     try {
+      // In Supabase, we should ideally use a RPC for bulk update, 
+      // but for now we'll do individual updates to keep it simple.
       await Promise.all(
-        updates.map(({ id, order }) =>
-          pb.collection('tasks').update(id, { order }, { $autoCancel: false })
+        result.map((task, index) =>
+          supabase.from('tasks').update({ order: index }).eq('id', task.id)
         )
       );
     } catch (err) {
       console.error('Failed to reorder tasks:', err);
-      fetchTasks();
+      setTasks(previousTasks);
     }
   };
 

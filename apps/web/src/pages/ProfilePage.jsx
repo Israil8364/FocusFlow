@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { toast } from 'sonner';
 import { User, Mail, Key, Trash2, Camera, LogOut } from 'lucide-react';
@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from '@/components/ConfirmationModal.jsx';
 
 const ProfilePage = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, refreshProfile } = useAuth();
   const navigate = useNavigate();
   
   const handleLogout = () => {
@@ -17,14 +17,20 @@ const ProfilePage = () => {
     navigate('/login');
   };
 
-  const [name, setName] = useState(currentUser?.name || '');
+  const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(
-    currentUser?.avatar 
-      ? pb.files.getUrl(currentUser, currentUser.avatar)
-      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.id || 'default'}&backgroundColor=f0ede8`
-  );
+  const [avatarPreview, setAvatarPreview] = useState('');
+
+  useEffect(() => {
+    if (currentUser) {
+      setName(currentUser.name || '');
+      const url = currentUser.avatar 
+        ? (currentUser.avatar.startsWith('http') ? currentUser.avatar : supabase.storage.from('avatars').getPublicUrl(currentUser.avatar).data.publicUrl)
+        : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}&backgroundColor=f0ede8`;
+      setAvatarPreview(url);
+    }
+  }, [currentUser]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleAvatarChange = (e) => {
@@ -36,15 +42,38 @@ const ProfilePage = () => {
   };
 
   const handleSaveProfile = async () => {
+    if (!currentUser) {
+      toast.error('Profile updates are not available in Guest Mode. Please sign up to save your profile.');
+      return;
+    }
+
     setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append('name', name);
+      let avatarUrl = currentUser.avatar;
+
       if (avatarFile) {
-        formData.append('avatar', avatarFile);
+        const fileExt = avatarFile.name.split('.').pop();
+        const fileName = `${currentUser.id}/${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatarFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+        avatarUrl = fileName;
       }
       
-      await pb.collection('users').update(currentUser.id, formData, { $autoCancel: false });
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: currentUser.id,
+          email: currentUser?.email,
+          full_name: name,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      await refreshProfile();
       toast.success('Profile updated successfully');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -57,12 +86,21 @@ const ProfilePage = () => {
   const handleDeleteAccount = async () => {
     setSaving(true);
     try {
-      await pb.collection('users').delete(currentUser.id);
-      toast.success('Account deleted. We are sorry to see you go.');
-      logout();
-      navigate('/login');
+      // In Supabase client, we can't delete the auth user, but we can wipe their data
+      await Promise.all([
+        supabase.from('profiles').delete().eq('id', currentUser.id),
+        supabase.from('tasks').delete().eq('user_id', currentUser.id),
+        supabase.from('sessions').delete().eq('user_id', currentUser.id),
+        supabase.from('settings').delete().eq('user_id', currentUser.id),
+      ]);
+      
+      toast.success('Your data has been cleared. Logging out...');
+      setTimeout(() => {
+        logout();
+        navigate('/login');
+      }, 2000);
     } catch (error) {
-      toast.error('Failed to delete account');
+      toast.error('Failed to clear account data');
       console.error(error);
     } finally {
       setSaving(false);

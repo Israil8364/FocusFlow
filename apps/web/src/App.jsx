@@ -43,9 +43,10 @@ const DashboardLayout = ({ children }) => {
 };
 
 const AppRoutes = () => {
-    const { initialLoading } = useAuth();
+    const { loading } = useAuth();
+    console.log('🔍 AppRoutes loading state:', loading);
 
-    if (initialLoading) {
+    if (loading) {
         return <LoadingAnimation />;
     }
 
@@ -75,10 +76,8 @@ function App() {
       <AuthProvider>
         <SettingsProvider>
           <TimerProvider>
-            <LenisScroll>
               <ScrollToTop />
               <AppRoutes />
-            </LenisScroll>
             <Toaster 
               toastOptions={{
                   className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',

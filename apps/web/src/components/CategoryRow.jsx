@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Check, Trash2, Edit2 } from 'lucide-react';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import TaskFormModal from './TaskFormModal';
 import { gsap } from "gsap";
@@ -26,7 +26,15 @@ const CategoryRow = ({ task, onToggle, onDelete }) => {
 
   const handleEditSave = async (updates) => {
     try {
-      await pb.collection('tasks').update(task.id, updates);
+      const dbUpdates = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.note !== undefined) dbUpdates.note = updates.note;
+      if (updates.estimatedPomodoros !== undefined) dbUpdates.estimated_pomodoros = updates.estimatedPomodoros;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+
+      const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', task.id);
+      if (error) throw error;
+      
       toast.success('Task updated');
       setIsEditModalOpen(false);
       window.location.reload();

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import pb from '@/lib/pocketbaseClient';
+import supabase from '@/lib/supabaseClient';
 import {
   calculateDailyStats,
   calculateWeeklyStats,
@@ -29,11 +29,23 @@ export const useStats = (userId) => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const dateFilter = thirtyDaysAgo.toISOString().split('T')[0];
       
-      const records = await pb.collection('sessions').getFullList({
-        filter: `userId = "${userId}" && date >= "${dateFilter}"`,
-        sort: '-date',
-        $autoCancel: false
-      });
+      const { data, error: err } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('date', dateFilter)
+        .order('date', { ascending: false });
+
+      if (err) throw err;
+      
+      const records = data.map(s => ({
+        id: s.id,
+        userId: s.user_id,
+        type: s.type,
+        duration: s.duration,
+        date: s.date,
+        createdAt: s.created_at
+      }));
       
       setSessions(records);
       
@@ -69,12 +81,27 @@ export const useStats = (userId) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      const session = await pb.collection('sessions').create({
-        userId,
-        type,
-        duration,
-        date: today
-      }, { $autoCancel: false });
+      const { data, error: err } = await supabase
+        .from('sessions')
+        .insert({
+          user_id: userId,
+          type,
+          duration,
+          date: today
+        })
+        .select()
+        .single();
+
+      if (err) throw err;
+
+      const session = {
+        id: data.id,
+        userId: data.user_id,
+        type: data.type,
+        duration: data.duration,
+        date: data.date,
+        createdAt: data.created_at
+      };
 
       await fetchSessions();
       
