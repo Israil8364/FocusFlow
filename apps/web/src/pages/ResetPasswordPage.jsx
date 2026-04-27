@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/AuthLeftPanel.jsx';
 import { LogoMark } from '@/components/Logo.jsx';
 import LoadingAnimation from '@/components/LoadingAnimation.jsx';
+import supabase from '@/lib/supabaseClient';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const C = {
   bg: '#e9eaec',
@@ -140,15 +142,38 @@ const ResetPasswordPage = () => {
   const [fieldErrors, setFieldErrors] = useState({ password: '', passwordConfirm: '' });
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const t = params.get('token');
-    if (t) {
-      setToken(t);
-    } else {
-      toast.error('Invalid reset link');
-      navigate('/login');
-    }
+    // Supabase handles recovery links by either setting a session via hash (implicit) 
+    // or providing a 'code' (PKCE). We verify that one of these is present.
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const params = new URLSearchParams(location.search);
+      const hasCode = params.has('code');
+      const hasRecoveryHash = window.location.hash.includes('type=recovery') || 
+                            window.location.hash.includes('access_token');
+
+      if (!session && !hasCode && !hasRecoveryHash) {
+        toast.error('Invalid or expired reset link');
+        navigate('/login');
+      }
+    };
+
+    checkSession();
   }, [location, navigate]);
+
+  const getStrength = (pw) => {
+    let score = 0;
+    if (!pw) return 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score;
+  };
+
+  const strength = getStrength(password);
+  const strengthColor = ['#ef4444', '#f59e0b', '#34d399', '#10b981'][strength - 1] || '#e5e7eb';
+  const strengthText = ['Weak', 'Fair', 'Good', 'Strong'][strength - 1] || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,10 +187,14 @@ const ResetPasswordPage = () => {
       setFieldErrors(prev => ({ ...prev, password: 'Password must be at least 8 characters' }));
       return;
     }
+    if (strength < 3) {
+      setFieldErrors(prev => ({ ...prev, password: 'Please use a stronger password' }));
+      return;
+    }
 
     setLoading(true);
     try {
-      await confirmPasswordReset(token, password, passwordConfirm);
+      await confirmPasswordReset(password);
       setShowSuccess(true);
     } catch (err) {
       toast.error(err.message || 'Failed to reset password. Link may be expired.');
@@ -220,6 +249,24 @@ const ResetPasswordPage = () => {
                   rightElement={<EyeIcon show={showPw} onClick={() => setShowPw(p => !p)} />}
                   error={fieldErrors.password}
                 />
+                
+                {password && (
+                  <div style={{ marginTop: -4, marginBottom: 8 }}>
+                    <div style={{ display: 'flex', gap: 4, height: 4, marginBottom: 6 }}>
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} style={{ 
+                          flex: 1, borderRadius: 2,
+                          background: i <= strength ? strengthColor : '#e5e7eb',
+                          transition: 'background 0.3s'
+                        }} />
+                      ))}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: strengthColor }}>
+                      {strengthText}
+                    </span>
+                  </div>
+                )}
+
                  <Input
                   type={showPwConfirm ? 'text' : 'password'} placeholder="Confirm New Password"
                   value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)}

@@ -89,6 +89,9 @@ export const AuthProvider = ({ children }) => {
         await refreshUser();
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
+      } else if (event === 'PASSWORD_RECOVERY') {
+        console.log('🔄 Password Recovery event detected');
+        // The user is redirected to the reset password page with a session set by Supabase
       }
       setLoading(false);
     });
@@ -199,11 +202,11 @@ export const AuthProvider = ({ children }) => {
 
   const confirmPasswordReset = async (password) => {
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { data, error } = await supabase.auth.updateUser({
         password: password
       });
       if (error) throw error;
-      return true;
+      return data;
     } catch (error) {
       console.error('Password reset confirmation failed:', error);
       throw error;

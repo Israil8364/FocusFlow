@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
@@ -26,9 +26,32 @@ const VerificationPendingPage = () => {
   const { resendVerification, currentUser } = useAuth();
   const email = location.state?.email || '';
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const timerRef = useRef(null);
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCountdown(60);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    startTimer();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   // Auto-redirect if user becomes authenticated (e.g. after clicking link in another tab)
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentUser) {
       navigate('/', { replace: true });
       toast.success('Email verified successfully!');
@@ -44,6 +67,7 @@ const VerificationPendingPage = () => {
     try {
       await resendVerification(email);
       toast.success('New verification email sent!');
+      startTimer();
     } catch (err) {
       toast.error(err.message || 'Failed to resend email');
     } finally {
@@ -114,14 +138,14 @@ const VerificationPendingPage = () => {
                 Didn't receive the email?{' '}
                 <button 
                   onClick={handleResend}
-                  disabled={loading}
+                  disabled={loading || countdown > 0}
                   style={{ 
                     background: 'none', border: 'none', color: C.accent, 
-                    fontWeight: 600, cursor: 'pointer', padding: 0,
-                    opacity: loading ? 0.5 : 1
+                    fontWeight: 600, cursor: (loading || countdown > 0) ? 'not-allowed' : 'pointer', padding: 0,
+                    opacity: (loading || countdown > 0) ? 0.5 : 1
                   }}
                 >
-                  {loading ? 'Resending...' : 'Resend link'}
+                  {loading ? 'Resending...' : countdown > 0 ? `Resend in ${countdown}s` : 'Resend link'}
                 </button>
               </p>
             </div>
