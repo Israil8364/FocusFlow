@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext.jsx';
 import { SettingsProvider } from '@/contexts/SettingsContext.jsx';
@@ -27,13 +29,23 @@ import BottomTabBar from '@/components/BottomTabBar.jsx';
 import GuestBanner from '@/components/GuestBanner.jsx';
 
 const DashboardLayout = ({ children }) => {
+  const layoutRef = useRef(null);
+
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    tl.from(".gsap-sidebar", { x: -30, opacity: 0, duration: 0.8, ease: "power3.out" })
+      .from(".gsap-main", { opacity: 0, y: 10, duration: 0.6, ease: "power2.out" }, "-=0.6");
+  }, { scope: layoutRef });
+
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans">
+    <div ref={layoutRef} className="flex flex-col min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans">
       <GuestBanner />
       <Navbar />
       <div className="flex flex-1 relative">
-        <Sidebar className="sticky top-[64px] h-[calc(100vh-64px)]" />
-        <main className="flex-1 pb-[64px] md:pb-0">
+        <div className="gsap-sidebar hidden md:block sticky top-[64px] h-[calc(100vh-64px)]">
+           <Sidebar />
+        </div>
+        <main className="gsap-main flex-1 pb-[64px] md:pb-0">
           {children}
         </main>
       </div>

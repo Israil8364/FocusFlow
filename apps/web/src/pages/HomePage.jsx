@@ -38,6 +38,19 @@ const HomePage = () => {
   }, { scope: masterRef });
 
   useGSAP(() => {
+    if (!loadingTasks && tasks.length > 0) {
+      gsap.from(".gsap-task-item", {
+        y: 20,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.1,
+        ease: "power2.out",
+        clearProps: "all"
+      });
+    }
+  }, [loadingTasks, tasks.length]);
+
+  useGSAP(() => {
     if (isRunning) {
       gsap.to(timerRingRef.current, {
         scale: 1.02,
@@ -215,12 +228,13 @@ const HomePage = () => {
               </div>
             ) : (
               tasks.map(task => (
-                <CategoryRow 
-                  key={task.id} 
-                  task={task} 
-                  onToggle={toggleTask} 
-                  onDelete={deleteTask} 
-                />
+                <div key={task.id} className="gsap-task-item">
+                  <CategoryRow 
+                    task={task} 
+                    onToggle={toggleTask} 
+                    onDelete={deleteTask} 
+                  />
+                </div>
               ))
             )}
           </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Home, Clock, History, BarChart2, Settings, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
+import AnimatedIcon from './AnimatedIcon';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -32,7 +33,13 @@ const Sidebar = () => {
           }`}
           title={item.label}
         >
-          <item.icon className="w-5 h-5 shrink-0" />
+          <AnimatedIcon 
+            icon={item.icon} 
+            size={20} 
+            color={isActive ? 'var(--bg)' : 'currentColor'} 
+            animation="bounce"
+            className="shrink-0"
+          />
           <span className="hidden lg:block text-body font-medium">{item.label}</span>
         </Link>
       );

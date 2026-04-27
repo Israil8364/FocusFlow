@@ -49,13 +49,21 @@ const Navbar = () => {
     }
   }, [isDropdownOpen]);
 
+  const navbarRef = useRef(null);
+
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    tl.from(".gsap-nav-logo", { x: -20, opacity: 0, duration: 0.8, ease: "power3.out" })
+      .from(".gsap-nav-user", { x: 20, opacity: 0, duration: 0.8, ease: "power3.out" }, "-=0.8");
+  }, { scope: navbarRef });
+
   const avatarUrl = currentUser?.avatar 
     ? currentUser.avatar.startsWith('http') ? currentUser.avatar : supabase.storage.from('avatars').getPublicUrl(currentUser.avatar).data.publicUrl
     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.id || 'default'}&backgroundColor=f0ede8`;
 
   return (
-    <header className="sticky top-0 z-40 h-[64px] bg-[var(--bg)] border-b border-[var(--border)] flex items-center justify-between px-4 lg:px-8 transition-colors duration-200">
-      <div className="flex items-center gap-4">
+    <header ref={navbarRef} className="sticky top-0 z-40 h-[64px] bg-[var(--bg)] border-b border-[var(--border)] flex items-center justify-between px-4 lg:px-8 transition-colors duration-200">
+      <div className="flex items-center gap-4 gsap-nav-logo">
         
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 flex items-center justify-center">
@@ -65,7 +73,7 @@ const Navbar = () => {
         </Link>
       </div>
       
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 gsap-nav-user">
         <div id="navbar-timer-portal-target" className="hidden sm:block"></div>
         
         <div className="relative" ref={dropdownRef}>

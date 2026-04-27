@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { timerState } from '@/utils/timerState';
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import AnimatedIcon from './AnimatedIcon';
 
 const BottomTabBar = () => {
   const location = useLocation();
@@ -56,11 +57,12 @@ const BottomTabBar = () => {
             >
               <div className="flex items-center gap-2">
                 <div className="relative flex items-center justify-center">
-                  <item.icon 
+                  <AnimatedIcon 
+                    icon={item.icon}
                     size={20} 
                     strokeWidth={isActive ? 2.2 : 1.8} 
                     color={isActive ? 'var(--bg)' : 'var(--text-muted)'} 
-                    style={{ transition: 'all 300ms cubic-bezier(0.16,1,0.3,1)' }}
+                    animation={isActive ? "scale" : "bounce"}
                   />
                   {isTimer && sessionActive && (
                     <span 
