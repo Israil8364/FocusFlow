@@ -23,6 +23,8 @@ import ProfilePage from '@/pages/ProfilePage.jsx';
 import AnalyticsPage from '@/pages/AnalyticsPage.jsx';
 import UpgradePage from '@/pages/UpgradePage.jsx';
 import AddTaskPage from '@/pages/AddTaskPage.jsx';
+import TermsPage from '@/pages/TermsPage.jsx';
+import PrivacyPage from '@/pages/PrivacyPage.jsx';
 import Navbar from '@/components/Navbar.jsx';
 import Sidebar from '@/components/Sidebar.jsx';
 import BottomTabBar from '@/components/BottomTabBar.jsx';
@@ -78,6 +80,10 @@ const AppRoutes = () => {
             <Route path="/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
+            
+            {/* Legal Routes */}
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
         </Routes>
     );
 }

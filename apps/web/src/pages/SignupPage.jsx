@@ -253,7 +253,9 @@ const SignupPage = () => {
                     </div>
                     <span style={{ fontSize: 13, color: C.muted }}>
                       I agree to the{' '}
-                      <a href="#" style={{ color: C.muted, textDecoration: 'underline' }}>Terms & Conditions</a>
+                      <Link to="/terms" target="_blank" style={{ color: C.muted, textDecoration: 'underline' }}>Terms & Conditions</Link>
+                      {' '}and{' '}
+                      <Link to="/privacy" target="_blank" style={{ color: C.muted, textDecoration: 'underline' }}>Privacy Policy</Link>
                     </span>
                   </label>
                 </div>
