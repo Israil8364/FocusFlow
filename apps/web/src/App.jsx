@@ -45,21 +45,17 @@ const DashboardLayout = ({ children }) => {
   }, { scope: layoutRef });
 
   return (
-    <div ref={layoutRef} className="flex min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans">
+    <div ref={layoutRef} className="flex flex-col min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans">
       <GuestBanner />
-      {/* Sidebar - Fixed on the left */}
-      <div className="gsap-sidebar hidden md:block">
-        <Sidebar />
-      </div>
-      
-      {/* Main Content Area - Fluid on the right */}
-      <div className="flex-1 flex flex-col md:ml-[240px]">
-        <Navbar />
-        <main className="gsap-main flex-1 p-0">
+      <Navbar />
+      <div className="flex flex-1 relative">
+        <div className="gsap-sidebar hidden md:block sticky top-[64px] h-[calc(100vh-64px)]">
+          <Sidebar />
+        </div>
+        <main className="gsap-main flex-1 pb-[64px] md:pb-0">
           {children}
         </main>
       </div>
-      
       <BottomTabBar />
     </div>
   );
