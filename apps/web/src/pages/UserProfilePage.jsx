@@ -17,8 +17,8 @@ import {
   TrendingUp,
   Clock
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useGamification, ACHIEVEMENTS } from '@/contexts/GamificationContext';
+import { useAuth } from '@/contexts/AuthContext.jsx';
+import { useGamification, ACHIEVEMENTS } from '@/contexts/GamificationContext.jsx';
 import supabase from '@/lib/supabaseClient';
 import { 
   calculateStreaks, 

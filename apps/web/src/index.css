@@ -10,12 +10,21 @@
   .theme-default {
     --bg: #f9f9f9;
     --card: #ffffff;
-    --border: #e0e0e0;
-    --text-primary: #1a1a1a;
-    --text-muted: #666666;
-    --accent: #e8372a;
-    --gold: #ffd700;
-    --orange: #ff8c00;
+    --border: #e2e2e2;
+    --border-strong: #c4c7c7;
+    --text-primary: #1a1c1c;
+    --text-muted: #444748;
+    --text-faint: #747878;
+    --accent: #18181b;
+    --gold-bg: rgba(252, 212, 0, 0.15);
+    --gold-border: #fcd400;
+    --gold-text: #705d00;
+    --orange-accent: #c76c00;
+    --blue-bg: rgba(219, 234, 254, 0.4);
+    --blue-border: #bfdbfe;
+    --blue-primary: #3b82f6;
+    --green-trend: #22c55e;
+    --orange-trend: #f97316;
 
     --shadow-neu-light: #ffffff;
     --shadow-neu-dark: #c8cacc;
