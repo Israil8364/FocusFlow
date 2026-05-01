@@ -36,7 +36,7 @@ const AnalyticsPage = () => {
         const totalPomodoros = records.length;
         const totalFocusTime = records.reduce((acc, curr) => acc + curr.duration, 0);
         const avgSessionLength = totalPomodoros ? Math.round(totalFocusTime / totalPomodoros) : 0;
-        
+
         // Compute streak (all-time)
         const activeDates = new Set(allRecords.map(r => r.date));
         let currentStreak = 0;
@@ -63,41 +63,41 @@ const AnalyticsPage = () => {
           chartTitle = 'Weekly Focus Time';
           trendTitle = '7-Day Trend';
           const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-          const weeklyDataMap = { 'Mon':0, 'Tue':0, 'Wed':0, 'Thu':0, 'Fri':0, 'Sat':0, 'Sun':0 };
+          const weeklyDataMap = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
           records.forEach(r => {
-             weeklyDataMap[days[new Date(r.date).getDay()]] += r.duration;
+            weeklyDataMap[days[new Date(r.date).getDay()]] += r.duration;
           });
           barChartData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
-             name: day, minutes: weeklyDataMap[day]
+            name: day, minutes: weeklyDataMap[day]
           }));
 
           for (let i = 6; i >= 0; i--) {
-             const dt = new Date();
-             dt.setDate(dt.getDate() - i);
-             const dtStr = dt.toISOString().split('T')[0];
-             const mins = records.filter(r => r.date === dtStr).reduce((a, c) => a + c.duration, 0);
-             trendData.push({ name: days[dt.getDay()], minutes: mins });
+            const dt = new Date();
+            dt.setDate(dt.getDate() - i);
+            const dtStr = dt.toISOString().split('T')[0];
+            const mins = records.filter(r => r.date === dtStr).reduce((a, c) => a + c.duration, 0);
+            trendData.push({ name: days[dt.getDay()], minutes: mins });
           }
         } else if (timeRange === 'Month') {
           chartTitle = 'Monthly Focus Time';
           trendTitle = '30-Day Trend';
-          
-          const map = { 'Week 1':0, 'Week 2':0, 'Week 3':0, 'Week 4':0 };
+
+          const map = { 'Week 1': 0, 'Week 2': 0, 'Week 3': 0, 'Week 4': 0 };
           records.forEach(r => {
-             const daysAgo = Math.floor((now - new Date(r.date))/(1000*60*60*24));
-             if (daysAgo < 7) map['Week 4'] += r.duration;
-             else if (daysAgo < 14) map['Week 3'] += r.duration;
-             else if (daysAgo < 21) map['Week 2'] += r.duration;
-             else if (daysAgo < 28) map['Week 1'] += r.duration;
+            const daysAgo = Math.floor((now - new Date(r.date)) / (1000 * 60 * 60 * 24));
+            if (daysAgo < 7) map['Week 4'] += r.duration;
+            else if (daysAgo < 14) map['Week 3'] += r.duration;
+            else if (daysAgo < 21) map['Week 2'] += r.duration;
+            else if (daysAgo < 28) map['Week 1'] += r.duration;
           });
           barChartData = ['Week 1', 'Week 2', 'Week 3', 'Week 4'].map(w => ({ name: w, minutes: map[w] }));
 
           for (let i = 29; i >= 0; i--) {
-             const dt = new Date();
-             dt.setDate(dt.getDate() - i);
-             const dtStr = dt.toISOString().split('T')[0];
-             const mins = records.filter(r => r.date === dtStr).reduce((a, c) => a + c.duration, 0);
-             trendData.push({ name: dt.getDate(), minutes: mins });
+            const dt = new Date();
+            dt.setDate(dt.getDate() - i);
+            const dtStr = dt.toISOString().split('T')[0];
+            const mins = records.filter(r => r.date === dtStr).reduce((a, c) => a + c.duration, 0);
+            trendData.push({ name: dt.getDate(), minutes: mins });
           }
         } else if (timeRange === 'Year') {
           chartTitle = 'Yearly Focus Time';
@@ -107,12 +107,12 @@ const AnalyticsPage = () => {
           const map = {};
           months.forEach(m => map[m] = 0);
           records.forEach(r => { map[months[new Date(r.date).getMonth()]] += r.duration; });
-          
+
           const curMonth = now.getMonth();
-          for(let i=11; i>=0; i--) {
-             let mIndex = curMonth - i;
-             if(mIndex < 0) mIndex += 12;
-             barChartData.push({ name: months[mIndex], minutes: map[months[mIndex]] });
+          for (let i = 11; i >= 0; i--) {
+            let mIndex = curMonth - i;
+            if (mIndex < 0) mIndex += 12;
+            barChartData.push({ name: months[mIndex], minutes: map[months[mIndex]] });
           }
           trendData = [...barChartData];
         }
@@ -191,13 +191,13 @@ const AnalyticsPage = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
             <div className="flex gap-3">
-               <Link to="/timer" className="flex items-center gap-2 px-4 py-1.5 rounded-[var(--radius-pill)] border border-[var(--border)] text-sm font-medium bg-[var(--card)] hover:bg-[var(--bg)] transition-colors shadow-sm"><Play className="w-4 h-4" /> Timer</Link>
-               <Link to="/history" className="flex items-center gap-2 px-4 py-1.5 rounded-[var(--radius-pill)] border border-[var(--border)] text-sm font-medium bg-[var(--card)] hover:bg-[var(--bg)] transition-colors shadow-sm"><History className="w-4 h-4" /> History</Link>
+              <Link to="/timer" className="flex items-center gap-2 px-4 py-1.5 rounded-[var(--radius-pill)] border border-[var(--border)] text-sm font-medium bg-[var(--card)] hover:bg-[var(--bg)] transition-colors shadow-sm"><Play className="w-4 h-4" /> Timer</Link>
+              <Link to="/history" className="flex items-center gap-2 px-4 py-1.5 rounded-[var(--radius-pill)] border border-[var(--border)] text-sm font-medium bg-[var(--card)] hover:bg-[var(--bg)] transition-colors shadow-sm"><History className="w-4 h-4" /> History</Link>
             </div>
             <div className="flex bg-[var(--card)] p-1 rounded-[var(--radius-pill)] border border-[var(--border)]">
               {['Week', 'Month', 'Year'].map(t => (
-                <button 
-                  key={t} 
+                <button
+                  key={t}
                   onClick={() => setTimeRange(t)}
                   className={`px-4 py-1.5 rounded-[var(--radius-pill)] text-sm font-medium transition-colors outline-none focus-visible:ring-2 ring-[var(--text-primary)] ${t === timeRange ? 'bg-[var(--text-primary)] text-[var(--bg)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                 >
@@ -228,8 +228,8 @@ const AnalyticsPage = () => {
             <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.barChartData}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--text-muted))', fontSize: 12}} />
-                  <Tooltip cursor={{fill: 'hsl(var(--bg))'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-neu-sm)'}} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--text-muted))', fontSize: 12 }} />
+                  <Tooltip cursor={{ fill: 'hsl(var(--bg))' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-neu-sm)' }} />
                   <Bar dataKey="minutes" fill="var(--accent)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -246,13 +246,13 @@ const AnalyticsPage = () => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-neu-sm)'}} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-neu-sm)' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="w-[40%] pl-4 space-y-3">
                 {stats.categoryData.map((cat, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
-                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: cat.color}}></div>
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }}></div>
                     <span className="text-[var(--text-primary)]">{cat.name}</span>
                   </div>
                 ))}
@@ -266,8 +266,8 @@ const AnalyticsPage = () => {
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats.trendData}>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--text-muted))', fontSize: 12}} />
-                <Tooltip cursor={{fill: 'hsl(var(--bg))'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-neu-sm)'}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--text-muted))', fontSize: 12 }} />
+                <Tooltip cursor={{ fill: 'hsl(var(--bg))' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-neu-sm)' }} />
                 <Line type="monotone" dataKey="minutes" stroke="var(--accent)" strokeWidth={3} dot={false} />
               </LineChart>
             </ResponsiveContainer>

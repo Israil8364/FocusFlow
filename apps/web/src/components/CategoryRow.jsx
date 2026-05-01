@@ -1,11 +1,12 @@
 
-import React, { useState, useRef } from 'react';
-import { Check, Trash2, Edit2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Trash2, Edit2, GripVertical } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import supabase from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import TaskFormModal from './TaskFormModal';
 import { gsap } from "gsap";
-import { useGSAP } from "@gsap/react";
 
 const COLORS = {
   red: '#e8372a',
@@ -19,9 +20,26 @@ const COLORS = {
   tomato: '#e8372a',
 };
 
-const CategoryRow = ({ task, onToggle, onDelete }) => {
+const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  
+
+  // dnd-kit sortable integration
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition || 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto',
+  };
+
   const colorValue = COLORS[task.category] || COLORS.sage;
 
   const handleEditSave = async (updates) => {
@@ -34,7 +52,7 @@ const CategoryRow = ({ task, onToggle, onDelete }) => {
 
       const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', task.id);
       if (error) throw error;
-      
+
       toast.success('Task updated');
       setIsEditModalOpen(false);
       window.location.reload();
@@ -44,14 +62,10 @@ const CategoryRow = ({ task, onToggle, onDelete }) => {
     }
   };
 
-  const rowRef = useRef(null);
-
-  useGSAP(() => {
-    // Initial state handled by CSS opacity-0, but we can enhance it
-  }, { scope: rowRef });
-
-  const onEnter = () => {
-    gsap.to(".gsap-action", {
+  const onEnter = (e) => {
+    if (isDragging) return;
+    const el = e.currentTarget;
+    gsap.to(el.querySelectorAll(".gsap-action"), {
       opacity: 1,
       x: 0,
       stagger: 0.05,
@@ -60,8 +74,9 @@ const CategoryRow = ({ task, onToggle, onDelete }) => {
     });
   };
 
-  const onLeave = () => {
-    gsap.to(".gsap-action", {
+  const onLeave = (e) => {
+    const el = e.currentTarget;
+    gsap.to(el.querySelectorAll(".gsap-action"), {
       opacity: 0,
       x: 5,
       stagger: 0.05,
@@ -72,29 +87,45 @@ const CategoryRow = ({ task, onToggle, onDelete }) => {
 
   return (
     <>
-      <div 
-        ref={rowRef}
+      <div
+        ref={setNodeRef}
+        style={style}
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
-        className="group relative flex items-center justify-between p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-level-1 hover:shadow-level-2 transition-all duration-200 hover:scale-[1.01] overflow-hidden border border-[var(--border)]"
+        className={`group relative flex items-center justify-between p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-level-1 hover:shadow-level-2 transition-shadow duration-200 overflow-hidden border border-[var(--border)] select-none ${isDragging ? 'ring-2 ring-[var(--accent)] shadow-neu scale-[1.02]' : 'hover:scale-[1.01]'}`}
       >
-        <div className="absolute right-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: colorValue }}></div>
+        {/* Color accent bar */}
+        <div className="absolute right-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: colorValue }} />
+
+        {/* Drag handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          id={`drag-handle-${task.id}`}
+          aria-label="Drag to reorder task"
+          className="shrink-0 mr-2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] cursor-grab active:cursor-grabbing touch-none transition-colors p-1 rounded"
+          style={{ touchAction: 'none' }}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
 
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <button
             onClick={() => onToggle(task.id)}
             className={`w-5 h-5 rounded-[var(--radius-circle)] border-2 flex items-center justify-center transition-colors duration-200 shrink-0 ${
-              task.isCompleted 
-                ? 'bg-[var(--text-primary)] border-[var(--text-primary)]' 
+              task.isCompleted
+                ? 'bg-[var(--text-primary)] border-[var(--text-primary)]'
                 : 'border-[var(--border)] hover:border-[var(--text-muted)]'
             }`}
           >
             {task.isCompleted && <Check className="w-3 h-3 text-[var(--card)]" />}
           </button>
           <div className="flex-1 min-w-0">
-            <span className={`text-body font-medium truncate transition-colors duration-200 block ${
-              task.isCompleted ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'
-            }`}>
+            <span
+              className={`text-body font-medium truncate transition-colors duration-200 block ${
+                task.isCompleted ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'
+              }`}
+            >
               {task.title}
             </span>
             {task.note && (

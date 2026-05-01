@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { LeaderboardProvider } from './contexts/LeaderboardContext';
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
@@ -19,7 +20,6 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage.jsx';
 import TimerPage from '@/pages/TimerPage.jsx';
 import HistoryPage from '@/pages/HistoryPage.jsx';
 import SettingsPage from '@/pages/SettingsPage.jsx';
-import ProfilePage from '@/pages/ProfilePage.jsx';
 import AnalyticsPage from '@/pages/AnalyticsPage.jsx';
 import UpgradePage from '@/pages/UpgradePage.jsx';
 import AddTaskPage from '@/pages/AddTaskPage.jsx';
@@ -29,7 +29,12 @@ import Navbar from '@/components/Navbar.jsx';
 import Sidebar from '@/components/Sidebar.jsx';
 import BottomTabBar from '@/components/BottomTabBar.jsx';
 import GuestBanner from '@/components/GuestBanner.jsx';
-
+import NotificationPermissionBanner from '@/components/NotificationPermissionBanner.jsx';
+import { GamificationProvider } from '@/contexts/GamificationContext.jsx';
+import AchievementsPage from '@/pages/AchievementsPage.jsx';
+import LeaderboardPage from '@/pages/LeaderboardPage.jsx';
+import UserProfilePage from '@/pages/UserProfilePage.jsx';
+import ConfettiToast from '@/components/gamification/ConfettiToast.jsx';
 const DashboardLayout = ({ children }) => {
   const layoutRef = useRef(null);
 
@@ -45,7 +50,7 @@ const DashboardLayout = ({ children }) => {
       <Navbar />
       <div className="flex flex-1 relative">
         <div className="gsap-sidebar hidden md:block sticky top-[64px] h-[calc(100vh-64px)]">
-           <Sidebar />
+          <Sidebar />
         </div>
         <main className="gsap-main flex-1 pb-[64px] md:pb-0">
           {children}
@@ -57,35 +62,38 @@ const DashboardLayout = ({ children }) => {
 };
 
 const AppRoutes = () => {
-    const { loading } = useAuth();
-    console.log('🔍 AppRoutes loading state:', loading);
+  const { loading } = useAuth();
+  console.log('🔍 AppRoutes loading state:', loading);
 
-    if (loading) {
-        return <LoadingAnimation />;
-    }
+  if (loading) {
+    return <LoadingAnimation />;
+  }
 
-    return (
-        <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/verification-pending" element={<VerificationPendingPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            
-            <Route path="/" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/timer" element={<ProtectedRoute><DashboardLayout><TimerPage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/history" element={<ProtectedRoute><DashboardLayout><HistoryPage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><DashboardLayout><AnalyticsPage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><DashboardLayout><SettingsPage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
-            
-            {/* Legal Routes */}
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-        </Routes>
-    );
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/verification-pending" element={<VerificationPendingPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      <Route path="/" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/timer" element={<ProtectedRoute><DashboardLayout><TimerPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/history" element={<ProtectedRoute><DashboardLayout><HistoryPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute><DashboardLayout><AnalyticsPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/achievements" element={<ProtectedRoute><DashboardLayout><AchievementsPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/leaderboard" element={<ProtectedRoute><DashboardLayout><LeaderboardPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><DashboardLayout><SettingsPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><DashboardLayout><UserProfilePage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/user/:userId" element={<ProtectedRoute><DashboardLayout><UserProfilePage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
+
+      {/* Legal Routes */}
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+    </Routes>
+  );
 }
 
 function App() {
@@ -94,13 +102,19 @@ function App() {
       <AuthProvider>
         <SettingsProvider>
           <TimerProvider>
-              <ScrollToTop />
-              <AppRoutes />
-            <Toaster 
-              toastOptions={{
-                  className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',
-                }}
-              />
+            <GamificationProvider>
+              <LeaderboardProvider>
+                <ScrollToTop />
+                <NotificationPermissionBanner />
+                <ConfettiToast />
+                <AppRoutes />
+                <Toaster
+                  toastOptions={{
+                    className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',
+                  }}
+                />
+              </LeaderboardProvider>
+            </GamificationProvider>
           </TimerProvider>
         </SettingsProvider>
       </AuthProvider>
@@ -108,4 +122,4 @@ function App() {
   );
 }
 
-export default App;
+export default App;

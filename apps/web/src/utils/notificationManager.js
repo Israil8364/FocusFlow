@@ -71,42 +71,64 @@ export const requestNotificationPermission = async () => {
   return false;
 };
 
-export const showNotification = (title, body, notificationsEnabled = true) => {
-  if (!notificationsEnabled) return;
-  
+export const showNotification = (title, body) => {
+  // Use browser permission as the ONLY gate — not the DB setting
+
   if ('Notification' in window && Notification.permission === 'granted') {
     try {
-      new Notification(title, {
-        body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'focusflow-timer',
-        requireInteraction: false
-      });
+      // Use ServiceWorker registration for better background support when available
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, {
+            body,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            tag: 'focusflow-timer',
+            renotify: true,
+            requireInteraction: false,
+            vibrate: [200, 100, 200],
+          });
+        }).catch(() => {
+          // Fallback to plain Notification
+          new Notification(title, {
+            body,
+            icon: '/favicon.ico',
+            tag: 'focusflow-timer',
+            renotify: true,
+          });
+        });
+      } else {
+        new Notification(title, {
+          body,
+          icon: '/favicon.ico',
+          tag: 'focusflow-timer',
+          renotify: true,
+        });
+      }
     } catch (e) {
       console.warn('Failed to show notification:', e);
     }
   }
 };
 
-export const notifyTimerComplete = (mode, notificationsEnabled, soundEnabled, soundType = 'bell') => {
+export const notifyTimerComplete = (mode, soundEnabled, soundType = 'bell') => {
   const messages = {
     pomodoro: {
-      title: 'Pomodoro complete',
-      body: 'Time for a break. Great work!'
+      title: '🍅 Focus session complete!',
+      body: 'Great work! Time for a well-earned break.',
     },
     shortBreak: {
-      title: 'Break complete',
-      body: 'Ready to focus again?'
+      title: `⚡ Break's over — let's go!`,
+      body: 'Your short break ended. Ready to crush it?',
     },
     longBreak: {
-      title: 'Long break complete',
-      body: 'Refreshed and ready to go!'
-    }
+      title: '🔋 Long break complete!',
+      body: `Fully recharged. Let's get back to it!`,
+    },
   };
-  
+
   const message = messages[mode] || messages.pomodoro;
-  
+
   playNotificationSound(soundEnabled, soundType);
-  showNotification(message.title, message.body, notificationsEnabled);
+  showNotification(message.title, message.body);
 };

@@ -41,12 +41,12 @@ const NeuomorphicTimerRing = ({ progress, time, mode, isRunning }) => {
 
   return (
     <div 
-      className="relative flex items-center justify-center w-[200px] h-[200px] md:w-[240px] md:h-[240px] lg:w-[280px] lg:h-[280px] rounded-[var(--radius-circle)] shadow-neu bg-[var(--bg)] mx-auto" 
+      className="relative flex items-center justify-center w-[280px] h-[280px] md:w-[360px] md:h-[360px] lg:w-[420px] lg:h-[420px] rounded-[var(--radius-circle)] shadow-neu bg-[var(--bg)] mx-auto transition-all duration-500" 
       role="timer" 
       aria-live="polite" 
       aria-label={`Session timer: ${time}`}
     >
-      <div className="absolute inset-4 md:inset-5 lg:inset-6 rounded-[var(--radius-circle)] shadow-neu-pressed bg-[var(--bg)]"></div>
+      <div className="absolute inset-5 md:inset-7 lg:inset-10 rounded-[var(--radius-circle)] shadow-neu-pressed bg-[var(--bg)]"></div>
 
       <svg className="absolute inset-0 w-full h-full transform -rotate-90 pointer-events-none" viewBox="0 0 280 280">
         {/* Ticks */}
@@ -90,7 +90,7 @@ const NeuomorphicTimerRing = ({ progress, time, mode, isRunning }) => {
             boxShadow: isRunning ? `0 0 12px ${dotColor}` : 'none' 
           }}
         ></div>
-        <div className="text-stat text-[var(--text-primary)]">{time}</div>
+        <div className="text-[42px] md:text-[52px] lg:text-[64px] font-bold text-[var(--text-primary)] leading-none tracking-[-0.03em] tabular-nums">{time}</div>
       </div>
     </div>
   );

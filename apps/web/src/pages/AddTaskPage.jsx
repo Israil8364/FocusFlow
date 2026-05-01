@@ -7,16 +7,16 @@ import { useTaskManager } from '@/hooks/useTaskManager.js';
 import { toast } from 'sonner';
 
 const COLORS = [
-  { id: 'red',    hex: '#e8372a' },
+  { id: 'red', hex: '#e8372a' },
   { id: 'orange', hex: '#f07832' },
-  { id: 'green',  hex: '#3aaa6e' },
-  { id: 'blue',   hex: '#3a7bd5' },
+  { id: 'green', hex: '#3aaa6e' },
+  { id: 'blue', hex: '#3a7bd5' },
   { id: 'violet', hex: '#8b5cf6' },
 ];
 
 const PROJECTS = [
-  { id: 'work',     label: 'Work',     color: '#3a7bd5', tasks: 12 },
-  { id: 'personal', label: 'Personal', color: '#3aaa6e', tasks: 5  },
+  { id: 'work', label: 'Work', color: '#3a7bd5', tasks: 12 },
+  { id: 'personal', label: 'Personal', color: '#3aaa6e', tasks: 5 },
 ];
 
 const MAX_NOTE = 200;
@@ -70,11 +70,10 @@ const AddTaskPage = () => {
               <button
                 key={tab}
                 onClick={() => setIsPremium(tab === 'Premium')}
-                className={`px-5 py-1.5 rounded-[var(--radius-pill)] text-sm font-medium transition-all duration-200 ${
-                  (tab === 'Premium') === isPremium
+                className={`px-5 py-1.5 rounded-[var(--radius-pill)] text-sm font-medium transition-all duration-200 ${(tab === 'Premium') === isPremium
                     ? 'bg-[var(--text-primary)] text-[var(--bg)] shadow-sm'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -169,9 +168,8 @@ const AddTaskPage = () => {
                   <button
                     key={project.id}
                     onClick={() => setActiveProject(project.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-[var(--border)] ${
-                      idx < PROJECTS.length - 1 ? 'border-b border-[var(--border)]' : ''
-                    } ${activeProject === project.id ? 'bg-[var(--border)]' : ''}`}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-[var(--border)] ${idx < PROJECTS.length - 1 ? 'border-b border-[var(--border)]' : ''
+                      } ${activeProject === project.id ? 'bg-[var(--border)]' : ''}`}
                   >
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: project.color }} />
@@ -188,7 +186,7 @@ const AddTaskPage = () => {
             )}
 
             {/* Add task CTA */}
-            <button 
+            <button
               onClick={handleAddTask}
               disabled={isSubmitting}
               className="w-full h-[50px] rounded-[var(--radius-pill)] bg-[var(--text-primary)] text-[var(--bg)] font-semibold text-[15px] shadow-neu hover:-translate-y-0.5 transition-all active:scale-95 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"

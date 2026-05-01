@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Clock, History, Settings, BarChart2 } from 'lucide-react';
+import { LayoutGrid, Clock, History, Settings, BarChart2, Trophy, Medal } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { timerState } from '@/utils/timerState';
 import { gsap } from "gsap";
@@ -19,8 +19,8 @@ const BottomTabBar = () => {
     { icon: LayoutGrid, label: 'Dashboard', path: '/' },
     { icon: Clock, label: 'Timer', path: '/timer' },
     { icon: History, label: 'History', path: '/history' },
-    { icon: BarChart2, label: 'Analytics', path: '/analytics' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
+    { icon: Trophy, label: 'Awards', path: '/achievements' },
+    { icon: Medal, label: 'Leaderboard', path: '/leaderboard' },
   ];
 
   useGSAP(() => {

@@ -15,7 +15,7 @@ export function useTimerContext() {
 export function TimerProvider({ children }) {
   const { currentUser } = useAuth();
   const { settings } = useSettings();
-  
+
   const modes = [
     { id: 'pomodoro', label: 'Pomodoro', time: (settings?.pomodoroMinutes || 25) * 60 },
     { id: 'shortBreak', label: 'Short Break', time: (settings?.shortBreakMinutes || 5) * 60 },
@@ -27,7 +27,6 @@ export function TimerProvider({ children }) {
   const [isRunning, setIsRunning] = useState(false);
   const [duration, setDuration] = useState(modes[0].time);
   const [pomodorosCompleted, setPomodorosCompleted] = useState(0);
-
   // A signal for components to know a session has completed so they can refetch tasks/stats
   const [sessionCompletedSignal, setSessionCompletedSignal] = useState(0);
 
@@ -77,7 +76,7 @@ export function TimerProvider({ children }) {
   useEffect(() => {
     if (isRunning) {
       if (!expectedEndTimeRef.current) {
-         expectedEndTimeRef.current = Date.now() + timeLeft * 1000;
+        expectedEndTimeRef.current = Date.now() + timeLeft * 1000;
       }
       workerRef.current.postMessage('start');
       timerState.setIsRunning(true);
@@ -121,8 +120,31 @@ export function TimerProvider({ children }) {
     workerRef.current.postMessage('stop');
     timerState.setIsRunning(false);
 
+    // ✅ Fire notification & sound IMMEDIATELY — never block on DB
+    toast.success(`${mode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`);
+    notifyTimerComplete(mode, settings?.soundEnabled ?? true, settings?.soundType ?? 'bell');
+
     let currentCompleted = pomodorosCompleted;
 
+    // Advance mode regardless of DB
+    if (mode === 'pomodoro') {
+      currentCompleted += 1;
+      setPomodorosCompleted(currentCompleted);
+      const nextMode = currentCompleted % 4 === 0 ? 'longBreak' : 'shortBreak';
+      if (settings?.autoStartBreak) {
+        setTimeout(() => { setMode(nextMode); setIsRunning(true); }, 1000);
+      } else {
+        setMode(nextMode);
+      }
+    } else {
+      if (settings?.autoStartPomodoro) {
+        setTimeout(() => { setMode('pomodoro'); setIsRunning(true); }, 1000);
+      } else {
+        setMode('pomodoro');
+      }
+    }
+
+    // Log session to DB in background — failure won't affect UX
     if (currentUser) {
       try {
         const durMins = Math.floor(duration / 60);
@@ -130,42 +152,13 @@ export function TimerProvider({ children }) {
           user_id: currentUser.id,
           duration: durMins,
           type: mode,
-          date: new Date().toISOString().split('T')[0], // Use YYYY-MM-DD for date column
+          date: new Date().toISOString().split('T')[0],
         });
-        
         if (error) throw error;
-        
-        toast.success(`${mode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`);
-        notifyTimerComplete(mode, settings?.notificationsEnabled, settings?.soundEnabled, settings?.soundType);
         setSessionCompletedSignal(prev => prev + 1);
-        
-        if (mode === 'pomodoro') {
-          currentCompleted += 1;
-          setPomodorosCompleted(currentCompleted);
-          
-          if (settings?.autoStartBreak) {
-            const nextMode = currentCompleted % 4 === 0 ? 'longBreak' : 'shortBreak';
-            setTimeout(() => {
-              setMode(nextMode);
-              setIsRunning(true);
-            }, 1000);
-          } else {
-            const nextMode = currentCompleted % 4 === 0 ? 'longBreak' : 'shortBreak';
-            setMode(nextMode);
-          }
-        } else {
-          // It was a break
-          if (settings?.autoStartPomodoro) {
-            setTimeout(() => {
-              setMode('pomodoro');
-              setIsRunning(true);
-            }, 1000);
-          } else {
-            setMode('pomodoro');
-          }
-        }
       } catch (error) {
-        console.error('Failed to log session:', error);
+        console.error('Failed to log session to DB:', error);
+        // Notification already fired — user is not affected
       }
     }
   };
@@ -186,16 +179,13 @@ export function TimerProvider({ children }) {
   };
 
   const contextValue = {
-    mode,
-    setMode,
-    timeLeft,
-    setTimeLeft,
-    isRunning,
-    setIsRunning,
+    mode, setMode,
+    timeLeft, setTimeLeft,
+    isRunning, setIsRunning,
     duration,
     sessionCompletedSignal,
     modes,
-    skipSession
+    skipSession,
   };
 
   return (

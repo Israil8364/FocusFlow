@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Clock, History, BarChart2, Settings, User } from 'lucide-react';
+import { Home, Clock, History, BarChart2, Settings, User, Trophy, Medal } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import AnimatedIcon from './AnimatedIcon';
@@ -12,31 +12,32 @@ const Sidebar = () => {
     { icon: Clock, label: 'Timer', path: '/timer' },
     { icon: History, label: 'History', path: '/history' },
     { icon: BarChart2, label: 'Analytics', path: '/analytics' },
+    { icon: Trophy, label: 'Achievements', path: '/achievements' },
+    { icon: Medal, label: 'Leaderboard', path: '/leaderboard' },
   ];
 
   const bottomItems = [
-    { icon: Settings, label: 'Settings', path: '/settings' },
     { icon: User, label: 'Profile', path: '/profile' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
   const renderLinks = (items) => (
     items.map(item => {
       const isActive = location.pathname === item.path;
       return (
-        <Link 
-          key={item.path} 
-          to={item.path} 
-          className={`flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-all duration-200 ${
-            isActive 
-              ? 'bg-[var(--text-primary)] text-[var(--bg)] shadow-neu-sm' 
+        <Link
+          key={item.path}
+          to={item.path}
+          className={`flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-all duration-200 ${isActive
+              ? 'bg-[var(--text-primary)] text-[var(--bg)] shadow-neu-sm'
               : 'text-[var(--text-muted)] hover:bg-[var(--card)] hover:text-[var(--text-primary)]'
-          }`}
+            }`}
           title={item.label}
         >
-          <AnimatedIcon 
-            icon={item.icon} 
-            size={20} 
-            color={isActive ? 'var(--bg)' : 'currentColor'} 
+          <AnimatedIcon
+            icon={item.icon}
+            size={20}
+            color={isActive ? 'var(--bg)' : 'currentColor'}
             animation="bounce"
             className="shrink-0"
           />
@@ -51,7 +52,7 @@ const Sidebar = () => {
       <nav className="flex flex-col gap-2 px-3 lg:px-4">
         {renderLinks(navItems)}
       </nav>
-      
+
       <div className="flex flex-col gap-2 px-3 lg:px-4">
         {renderLinks(bottomItems)}
       </div>

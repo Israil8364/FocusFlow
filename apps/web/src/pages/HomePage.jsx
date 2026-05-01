@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Helmet } from 'react-helmet';
-import { Plus } from 'lucide-react';
+import { Plus, Trophy } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import supabase from '@/lib/supabaseClient';
@@ -14,6 +14,25 @@ import { toast } from 'sonner';
 import AddTaskModal from '@/components/AddTaskModal.jsx';
 import { useSettings } from '@/contexts/SettingsContext.jsx';
 import { useTimerContext } from '@/contexts/TimerContext.jsx';
+import { useGamification } from '@/contexts/GamificationContext.jsx';
+import XPBar from '@/components/gamification/XPBar.jsx';
+import StreakWidget from '@/components/gamification/StreakWidget.jsx';
+import DailyGoalRing from '@/components/gamification/DailyGoalRing.jsx';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -22,12 +41,25 @@ const HomePage = () => {
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [stats, setStats] = useState({ pomodorosToday: 0, focusTimeToday: 0, dailyGoal: 60 });
-  
+  const [activeDragId, setActiveDragId] = useState(null);
+
   const { settings } = useSettings();
   const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession } = useTimerContext();
+  const { todayMinutes, currentStreak } = useGamification();
+  const goalMinutes = settings?.daily_goal_minutes ?? 120;
   const masterRef = useRef(null);
   const timerRingRef = useRef(null);
   const plusIconRef = useRef(null);
+
+  // dnd-kit sensors — pointer (mouse/touch) + keyboard
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }, // 8px drag before activation
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useGSAP(() => {
     const tl = gsap.timeline();
@@ -73,14 +105,15 @@ const HomePage = () => {
             .select('*')
             .eq('user_id', currentUser.id)
             .eq('is_completed', false)
-            .order('created_at', { ascending: false }),
+            .order('order', { ascending: true })
+            .order('created_at', { ascending: true }),
           supabase
             .from('sessions')
             .select('*')
             .eq('user_id', currentUser.id)
             .eq('type', 'pomodoro')
         ]);
-        
+
         if (taskResponse.error) throw taskResponse.error;
         if (sessionResponse.error) throw sessionResponse.error;
 
@@ -94,7 +127,7 @@ const HomePage = () => {
           category: t.category,
           note: t.note
         }));
-        
+
         setTasks(mappedTasks);
 
         // Calculate today's stats
@@ -152,6 +185,40 @@ const HomePage = () => {
     }
   };
 
+  // ─── Drag & Drop handlers ───────────────────────────────────────────────
+  const handleDragStart = ({ active }) => {
+    setActiveDragId(active.id);
+  };
+
+  const handleDragEnd = async ({ active, over }) => {
+    setActiveDragId(null);
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = tasks.findIndex(t => t.id === active.id);
+    const newIndex = tasks.findIndex(t => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Optimistically reorder in state
+    const reordered = arrayMove(tasks, oldIndex, newIndex);
+    setTasks(reordered);
+
+    // Persist new order to Supabase
+    try {
+      await Promise.all(
+        reordered.map((task, index) =>
+          supabase.from('tasks').update({ order: index }).eq('id', task.id)
+        )
+      );
+    } catch (err) {
+      console.error('Failed to persist task order:', err);
+      toast.error('Could not save task order');
+      // Revert
+      setTasks(tasks);
+    }
+  };
+
+  const activeDragTask = activeDragId ? tasks.find(t => t.id === activeDragId) : null;
+
   return (
     <>
       <Helmet>
@@ -159,11 +226,29 @@ const HomePage = () => {
       </Helmet>
 
       <div ref={masterRef} className="max-w-5xl mx-auto p-4 md:p-8 lg:p-12 space-y-12 animate-in fade-in duration-300">
-        
+
         <header className="gsap-header">
-          <h1 className="text-display text-[var(--text-primary)]">Welcome, {currentUser?.name || 'User'}</h1>
-          <p className="text-body text-[var(--text-muted)] mt-2">Ready for a productive session?</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-display text-[var(--text-primary)]">Welcome, {currentUser?.name || 'User'}</h1>
+              <p className="text-body text-[var(--text-muted)] mt-1">Ready for a productive session?</p>
+            </div>
+            <Link
+              to="/achievements"
+              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm"
+            >
+              <Trophy className="w-4 h-4" />
+              <span>Progress</span>
+            </Link>
+          </div>
         </header>
+
+        {/* Gamification widgets */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <XPBar />
+          <StreakWidget />
+          <DailyGoalRing todayMinutes={todayMinutes} goalMinutes={goalMinutes} />
+        </div>
 
         <section className="gsap-timer flex flex-col items-center bg-[var(--card)] p-8 rounded-[var(--radius-lg)] shadow-neu-sm border border-[var(--border)]">
           <div className="flex gap-4 mb-8">
@@ -179,11 +264,11 @@ const HomePage = () => {
           </div>
 
           <div ref={timerRingRef}>
-            <NeuomorphicTimerRing 
-              progress={((duration - timeLeft) / duration) * 100} 
-              time={formatTime(timeLeft)} 
-              mode={mode} 
-              isRunning={isRunning} 
+            <NeuomorphicTimerRing
+              progress={((duration - timeLeft) / duration) * 100}
+              time={formatTime(timeLeft)}
+              mode={mode}
+              isRunning={isRunning}
             />
           </div>
 
@@ -198,7 +283,7 @@ const HomePage = () => {
               onClick={skipSession}
               className="px-6 py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-medium transition-colors"
             >
-              Skip &rarr;
+              Skip
             </button>
           </div>
         </section>
@@ -206,36 +291,59 @@ const HomePage = () => {
         <section className="gsap-tasks">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-heading">Today's Tasks</h2>
-            <button 
-              onClick={() => setShowAddModal(true)} 
+            <button
+              onClick={() => setShowAddModal(true)}
               onMouseEnter={() => gsap.to(plusIconRef.current, { rotation: 90, duration: 0.3, ease: "power2.out" })}
               onMouseLeave={() => gsap.to(plusIconRef.current, { rotation: 0, duration: 0.3, ease: "power2.in" })}
               className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-pill)] bg-[var(--bg)] border border-[var(--border)] text-sm font-medium shadow-sm hover:shadow-neu-sm transition-all active:scale-95"
             >
               <div ref={plusIconRef}>
                 <Plus className="w-4 h-4" />
-              </div> 
+              </div>
               Add Task
             </button>
           </div>
-          
+
           <div className="space-y-3">
             {loadingTasks ? (
-              [1,2].map(i => <div key={i} className="h-16 bg-[var(--card)] rounded-[var(--radius-md)] animate-pulse border border-[var(--border)]"></div>)
+              [1, 2].map(i => <div key={i} className="h-16 bg-[var(--card)] rounded-[var(--radius-md)] animate-pulse border border-[var(--border)]" />)
             ) : tasks.length === 0 ? (
               <div className="text-center py-10 text-[var(--text-muted)] bg-[var(--card)] rounded-[var(--radius-md)] border border-[var(--border)] border-dashed">
                 No tasks for today. Enjoy your free time!
               </div>
             ) : (
-              tasks.map(task => (
-                <div key={task.id} className="gsap-task-item">
-                  <CategoryRow 
-                    task={task} 
-                    onToggle={toggleTask} 
-                    onDelete={deleteTask} 
-                  />
-                </div>
-              ))
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={tasks.map(t => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {tasks.map(task => (
+                    <div key={task.id} className="gsap-task-item">
+                      <CategoryRow
+                        task={task}
+                        onToggle={toggleTask}
+                        onDelete={deleteTask}
+                      />
+                    </div>
+                  ))}
+                </SortableContext>
+
+                {/* Ghost card while dragging */}
+                <DragOverlay adjustScale={false}>
+                  {activeDragTask ? (
+                    <div className="p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-neu border border-[var(--accent)] opacity-95 ring-2 ring-[var(--accent)] scale-105">
+                      <span className="text-body font-medium text-[var(--text-primary)]">
+                        {activeDragTask.title}
+                      </span>
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
             )}
           </div>
         </section>
@@ -248,10 +356,10 @@ const HomePage = () => {
             <StatChip label="Focus Time" value={`${stats.focusTimeToday}m`} />
           </Link>
           <Link to="/timer" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
-            <StatChip 
-              label="Daily Goal" 
-              value={`${Math.min(Math.round((stats.focusTimeToday / stats.dailyGoal) * 100), 100)}%`} 
-              subLabel={stats.focusTimeToday >= stats.dailyGoal ? 'Goal reached!' : 'Almost there!'} 
+            <StatChip
+              label="Daily Goal"
+              value={`${Math.min(Math.round((stats.focusTimeToday / stats.dailyGoal) * 100), 100)}%`}
+              subLabel={stats.focusTimeToday >= stats.dailyGoal ? 'Goal reached!' : 'Almost there!'}
             />
           </Link>
         </section>
@@ -278,7 +386,7 @@ const HomePage = () => {
               .single();
 
             if (error) throw error;
-            
+
             const record = {
               id: data.id,
               title: data.title,

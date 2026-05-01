@@ -20,63 +20,105 @@ export const AuthProvider = ({ children }) => {
   console.log('🛡️ AuthProvider Render - Loading:', loading, 'IsGuest:', isGuest);
 
   const fetchProfile = async (userId) => {
+    console.log('🔍 fetchProfile started for:', userId);
     try {
-      const { data, error } = await supabase
+      // Create a promise that rejects after 3 seconds
+      let timeoutId;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+      });
+
+      // Execute the query
+      const queryPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
+
+      console.log('⏳ Starting Promise.race for profile...');
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+      clearTimeout(timeoutId);
       
       if (error) throw error;
+      console.log('✅ Profile fetch result:', data ? 'Found' : 'Not found');
       return data;
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('⚠️ Profile fetch error/timeout:', err.message);
       return null;
     }
   };
 
-  const refreshUser = async () => {
+  const refreshUser = async (existingSession = null) => {
+    console.log('🔄 refreshUser starting...');
     try {
-      // Add a timeout to getSession to prevent hanging
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('getSession timeout')), 3000)
-      );
-      
-      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+      let session = existingSession;
+      if (!session) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+      }
 
       if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setCurrentUser({
+        // Step 1: Set user immediately with session data (eager update)
+        const basicUserData = {
           ...session.user,
-          ...profile,
-          name: profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
-          avatar: profile?.avatar_url || session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
+          avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
           verified: !!session.user.email_confirmed_at
-        });
+        };
+        console.log('👤 Eager user data set:', basicUserData.email);
+        setCurrentUser(basicUserData);
+
+        // Step 2: Fetch profile in background and merge
+        const profile = await fetchProfile(session.user.id);
+        if (profile) {
+          const fullUserData = {
+            ...basicUserData,
+            ...profile,
+            name: profile.full_name || basicUserData.name,
+            avatar: profile.avatar_url || basicUserData.avatar,
+          };
+          console.log('👤 Full user profile merged');
+          setCurrentUser(fullUserData);
+        }
       } else {
+        console.log('👤 No session found, clearing user');
         setCurrentUser(null);
       }
     } catch (err) {
       console.error('❌ refreshUser error:', err);
+      setCurrentUser(null);
+    } finally {
+      console.log('🔄 refreshUser complete');
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+    let authChecked = false;
+
     const initializeAuth = async () => {
-      setLoading(true);
-      
-      // Safety timeout: if auth takes more than 1.5 seconds, force stop loading
+      // Safety timeout
       const timeoutId = setTimeout(() => {
-        console.warn('⚠️ Auth initialization timed out after 1.5s. Forcing UI to load.');
-        setLoading(false);
-      }, 1500);
+        if (mounted && !authChecked) {
+          console.warn('⚠️ Auth check timed out. Forcing UI load.');
+          setLoading(false);
+        }
+      }, 8000);
 
       try {
-        await refreshUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          // Non-blocking refresh
+          refreshUser(session); 
+        }
+      } catch (err) {
+        console.error('❌ Auth initialization error:', err);
       } finally {
-        clearTimeout(timeoutId);
-        setLoading(false);
+        if (mounted) {
+          authChecked = true;
+          clearTimeout(timeoutId);
+          setLoading(false);
+        }
       }
     };
 
@@ -85,18 +127,34 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔔 Auth State Event:', event, 'User:', session?.user?.email || 'None');
       
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
-        await refreshUser();
-      } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-      } else if (event === 'PASSWORD_RECOVERY') {
-        console.log('🔄 Password Recovery event detected');
-        // The user is redirected to the reset password page with a session set by Supabase
+      try {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          if (mounted) {
+            // Eagerly unblock loading if it's the first sign in
+            const updatePromise = refreshUser(session);
+            if (!authChecked) {
+              await updatePromise;
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
+          if (mounted) {
+            setCurrentUser(null);
+            setIsGuest(false);
+            localStorage.removeItem(GUEST_KEY);
+          }
+        }
+      } catch (err) {
+        console.error('❌ Auth state change error:', err);
+      } finally {
+        if (mounted) {
+          authChecked = true;
+          setLoading(false);
+        }
       }
-      setLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -109,7 +167,7 @@ export const AuthProvider = ({ children }) => {
       });
       if (error) throw error;
       localStorage.removeItem(GUEST_KEY);
-      await refreshUser();
+      // Let onAuthStateChange handle the profile fetching and state update
       return data;
     } catch (error) {
       console.error('Login failed:', error);
