@@ -29,6 +29,7 @@ export function TimerProvider({ children }) {
   const [pomodorosCompleted, setPomodorosCompleted] = useState(0);
   // A signal for components to know a session has completed so they can refetch tasks/stats
   const [sessionCompletedSignal, setSessionCompletedSignal] = useState(0);
+  const [activeTask, setActiveTask] = useState(null);
 
   const workerRef = useRef(null);
   const expectedEndTimeRef = useRef(null);
@@ -153,8 +154,16 @@ export function TimerProvider({ children }) {
           duration: durMins,
           type: mode,
           date: new Date().toISOString().split('T')[0],
+          task_id: activeTask?.id || null,
+          category: activeTask?.category || null,
         });
         if (error) throw error;
+        
+        // Update task progress if a task was active
+        if (activeTask && mode === 'pomodoro') {
+          await supabase.rpc('increment_task_pomodoros', { task_id_param: activeTask.id });
+        }
+
         setSessionCompletedSignal(prev => prev + 1);
       } catch (error) {
         console.error('Failed to log session to DB:', error);
@@ -186,6 +195,8 @@ export function TimerProvider({ children }) {
     sessionCompletedSignal,
     modes,
     skipSession,
+    activeTask,
+    setActiveTask,
   };
 
   return (

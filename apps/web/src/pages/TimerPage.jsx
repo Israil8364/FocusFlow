@@ -6,9 +6,11 @@ import { Link } from 'react-router-dom';
 import NeuomorphicTimerRing from '@/components/NeuomorphicTimerRing.jsx';
 import { formatTime } from '@/utils/formatTime';
 import { useTimerContext } from '@/contexts/TimerContext.jsx';
+import { COLORS } from '@/components/CategoryRow.jsx';
+import { Target } from 'lucide-react';
 
 const TimerPage = () => {
-  const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, modes, skipSession } = useTimerContext();
+  const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, modes, skipSession, activeTask } = useTimerContext();
 
   const toggleTimer = useCallback(() => {
     setIsRunning(prev => !prev);
@@ -56,6 +58,21 @@ const TimerPage = () => {
             </button>
           ))}
         </div>
+
+        {activeTask ? (
+          <div className="mb-8 flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="flex items-center gap-2 px-6 py-2 bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-pill)] shadow-sm">
+              <Target className="w-4 h-4 text-[var(--accent)] animate-pulse" />
+              <span className="text-lg font-medium text-[var(--text-primary)]">{activeTask.title}</span>
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">Currently Focusing</p>
+          </div>
+        ) : (
+          <div className="mb-8 h-[68px] flex flex-col items-center justify-center text-[var(--text-muted)] italic">
+             <p className="text-sm">No task selected for focus</p>
+             <Link to="/" className="text-xs underline mt-1">Select a task from Dashboard</Link>
+          </div>
+        )}
 
         <div className="mb-16">
           <NeuomorphicTimerRing 

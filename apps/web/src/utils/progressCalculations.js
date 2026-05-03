@@ -120,11 +120,8 @@ export function calculateXPAndLevel(sessions) {
       activeDaysSet.add(dateStr);
     }
 
-    // XP Logic: 25 base + streak bonus
-    let earnedXP = 25;
-    if (currentSimulatedStreak >= 30) earnedXP = 50;
-    else if (currentSimulatedStreak >= 7) earnedXP = 35;
-
+    // XP Logic: 10 XP for sessions >= 20 minutes
+    let earnedXP = (s.duration >= 20) ? 10 : 0;
     totalXP += earnedXP;
   });
 

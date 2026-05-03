@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
-import { LeaderboardProvider } from './contexts/LeaderboardContext';
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
+import { Route, Routes, BrowserRouter as Router, Navigate } from 'react-router-dom';
+
 import { AuthProvider, useAuth } from '@/contexts/AuthContext.jsx';
 import { SettingsProvider } from '@/contexts/SettingsContext.jsx';
 import { TimerProvider } from '@/contexts/TimerContext.jsx';
@@ -31,10 +31,8 @@ import BottomTabBar from '@/components/BottomTabBar.jsx';
 import GuestBanner from '@/components/GuestBanner.jsx';
 import NotificationPermissionBanner from '@/components/NotificationPermissionBanner.jsx';
 import { GamificationProvider } from '@/contexts/GamificationContext.jsx';
-import AchievementsPage from '@/pages/AchievementsPage.jsx';
-import LeaderboardPage from '@/pages/LeaderboardPage.jsx';
-import UserProfilePage from '@/pages/UserProfilePage.jsx';
 import ConfettiToast from '@/components/gamification/ConfettiToast.jsx';
+import OnboardingPage from '@/pages/OnboardingPage.jsx';
 const DashboardLayout = ({ children }) => {
   const layoutRef = useRef(null);
 
@@ -62,12 +60,15 @@ const DashboardLayout = ({ children }) => {
 };
 
 const AppRoutes = () => {
-  const { loading } = useAuth();
+  const { loading, isAuthenticated, isGuest, needsOnboarding } = useAuth();
   console.log('🔍 AppRoutes loading state:', loading);
 
   if (loading) {
     return <LoadingAnimation />;
   }
+
+  // Redirect authenticated (non-guest) users to onboarding if profile incomplete
+  const showOnboarding = isAuthenticated && !isGuest && needsOnboarding;
 
   return (
     <Routes>
@@ -76,22 +77,26 @@ const AppRoutes = () => {
       <Route path="/verification-pending" element={<VerificationPendingPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
 
-      <Route path="/" element={<ProtectedRoute><DashboardLayout><HomePage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/timer" element={<ProtectedRoute><DashboardLayout><TimerPage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/history" element={<ProtectedRoute><DashboardLayout><HistoryPage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/analytics" element={<ProtectedRoute><DashboardLayout><AnalyticsPage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/achievements" element={<ProtectedRoute><DashboardLayout><AchievementsPage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/leaderboard" element={<ProtectedRoute><DashboardLayout><LeaderboardPage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><DashboardLayout><SettingsPage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><DashboardLayout><UserProfilePage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/user/:userId" element={<ProtectedRoute><DashboardLayout><UserProfilePage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
-      <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/" element={
+        <ProtectedRoute>
+          {showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><HomePage /></DashboardLayout>}
+        </ProtectedRoute>
+      } />
+      <Route path="/timer" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><TimerPage /></DashboardLayout>}</ProtectedRoute>} />
+      <Route path="/history" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><HistoryPage /></DashboardLayout>}</ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><AnalyticsPage /></DashboardLayout>}</ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><SettingsPage /></DashboardLayout>}</ProtectedRoute>} />
+      <Route path="/upgrade" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><UpgradePage /></DashboardLayout>}</ProtectedRoute>} />
+      <Route path="/add-task" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><AddTaskPage /></DashboardLayout>}</ProtectedRoute>} />
 
       {/* Legal Routes */}
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+
+      {/* Catch-all: redirect unknown routes to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
@@ -103,17 +108,15 @@ function App() {
         <SettingsProvider>
           <TimerProvider>
             <GamificationProvider>
-              <LeaderboardProvider>
-                <ScrollToTop />
-                <NotificationPermissionBanner />
-                <ConfettiToast />
-                <AppRoutes />
-                <Toaster
-                  toastOptions={{
-                    className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',
-                  }}
-                />
-              </LeaderboardProvider>
+              <ScrollToTop />
+              <NotificationPermissionBanner />
+              <ConfettiToast />
+              <AppRoutes />
+              <Toaster
+                toastOptions={{
+                  className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',
+                }}
+              />
             </GamificationProvider>
           </TimerProvider>
         </SettingsProvider>

@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(localStorage.getItem(GUEST_KEY) === 'true');
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   console.log('🛡️ AuthProvider Render - Loading:', loading, 'IsGuest:', isGuest);
 
@@ -38,7 +39,7 @@ export const AuthProvider = ({ children }) => {
       console.log('⏳ Starting Promise.race for profile...');
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
       clearTimeout(timeoutId);
-      
+
       if (error) throw error;
       console.log('✅ Profile fetch result:', data ? 'Found' : 'Not found');
       return data;
@@ -67,6 +68,8 @@ export const AuthProvider = ({ children }) => {
         };
         console.log('👤 Eager user data set:', basicUserData.email);
         setCurrentUser(basicUserData);
+        // Reset onboarding flag on new session
+        setNeedsOnboarding(false);
 
         // Step 2: Fetch profile in background and merge
         const profile = await fetchProfile(session.user.id);
@@ -79,6 +82,11 @@ export const AuthProvider = ({ children }) => {
           };
           console.log('👤 Full user profile merged');
           setCurrentUser(fullUserData);
+          // Determine if onboarding is needed (missing name or daily goal)
+          const needsOnboard = !profile.full_name || profile.daily_goal == null;
+          setNeedsOnboarding(needsOnboard);
+        } else {
+          setNeedsOnboarding(true);
         }
       } else {
         console.log('👤 No session found, clearing user');
@@ -109,7 +117,7 @@ export const AuthProvider = ({ children }) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (mounted) {
           // Non-blocking refresh
-          refreshUser(session); 
+          refreshUser(session);
         }
       } catch (err) {
         console.error('❌ Auth initialization error:', err);
@@ -126,7 +134,7 @@ export const AuthProvider = ({ children }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔔 Auth State Event:', event, 'User:', session?.user?.email || 'None');
-      
+
       try {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           if (mounted) {
@@ -271,6 +279,38 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const completeOnboarding = async ({ displayName, avatarUrl, dailyGoal }) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) throw new Error('No authenticated user');
+
+      const updates = {
+        id: userId,
+        full_name: displayName,
+        avatar_url: avatarUrl || null,
+        daily_goal: dailyGoal,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from('profiles').upsert(updates);
+      if (error) throw error;
+
+      setCurrentUser(prev => ({
+        ...prev,
+        name: displayName,
+        full_name: displayName,
+        avatar: avatarUrl || prev?.avatar || '',
+        avatar_url: avatarUrl || prev?.avatar_url || '',
+        daily_goal: dailyGoal,
+      }));
+      setNeedsOnboarding(false);
+    } catch (err) {
+      console.error('❌ completeOnboarding error:', err);
+      throw err;
+    }
+  };
+
   const value = {
     currentUser,
     isAuthenticated: !!currentUser,
@@ -286,6 +326,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     continueAsGuest,
     refreshProfile: refreshUser,
+    needsOnboarding,
+    completeOnboarding,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

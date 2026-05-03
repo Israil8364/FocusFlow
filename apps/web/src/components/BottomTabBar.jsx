@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Clock, History, Settings, BarChart2, Trophy, Medal } from 'lucide-react';
+import { LayoutGrid, Clock, History, BarChart2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { timerState } from '@/utils/timerState';
 import { gsap } from "gsap";
@@ -19,8 +19,7 @@ const BottomTabBar = () => {
     { icon: LayoutGrid, label: 'Dashboard', path: '/' },
     { icon: Clock, label: 'Timer', path: '/timer' },
     { icon: History, label: 'History', path: '/history' },
-    { icon: Trophy, label: 'Awards', path: '/achievements' },
-    { icon: Medal, label: 'Leaderboard', path: '/leaderboard' },
+    { icon: BarChart2, label: 'Analytics', path: '/analytics' },
   ];
 
   useGSAP(() => {
@@ -35,7 +34,7 @@ const BottomTabBar = () => {
 
   return (
     <div className="sm:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-      <nav 
+      <nav
         ref={containerRef}
         className="flex items-center gap-1 p-2 bg-[rgba(245,246,248,0.85)] backdrop-blur-xl border border-[rgba(216,218,222,0.5)] rounded-[32px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] pointer-events-auto"
         style={{ maxWidth: 'min(420px, 95vw)' }}
@@ -44,11 +43,11 @@ const BottomTabBar = () => {
           const isActive = location.pathname === item.path;
           const isTimer = item.label === 'Timer';
           return (
-            <Link 
-              key={item.path} 
-              to={item.path} 
+            <Link
+              key={item.path}
+              to={item.path}
               className="relative flex items-center justify-center rounded-[var(--radius-pill)] transition-all duration-300 overflow-hidden"
-              style={{ 
+              style={{
                 WebkitTapHighlightColor: 'transparent',
                 padding: isActive ? '10px 20px' : '10px 14px',
                 background: isActive ? 'var(--text-primary)' : 'transparent',
@@ -57,22 +56,22 @@ const BottomTabBar = () => {
             >
               <div className="flex items-center gap-2">
                 <div className="relative flex items-center justify-center">
-                  <AnimatedIcon 
+                  <AnimatedIcon
                     icon={item.icon}
-                    size={20} 
-                    strokeWidth={isActive ? 2.2 : 1.8} 
-                    color={isActive ? 'var(--bg)' : 'var(--text-muted)'} 
+                    size={20}
+                    strokeWidth={isActive ? 2.2 : 1.8}
+                    color={isActive ? 'var(--bg)' : 'var(--text-muted)'}
                     animation={isActive ? "scale" : "bounce"}
                   />
                   {isTimer && sessionActive && (
-                    <span 
+                    <span
                       className="absolute bg-[var(--accent)] rounded-full animate-pulse"
                       style={{ width: '6px', height: '6px', top: '-1px', right: '-1px', boxShadow: '0 0 8px var(--accent)' }}
                     />
                   )}
                 </div>
                 {isActive && (
-                  <span 
+                  <span
                     className="font-bold text-[var(--bg)]"
                     style={{
                       fontSize: '12px',

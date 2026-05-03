@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Clock, History, BarChart2, Settings, User, Trophy, Medal } from 'lucide-react';
+import { Home, Clock, History, BarChart2, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import AnimatedIcon from './AnimatedIcon';
@@ -12,12 +12,9 @@ const Sidebar = () => {
     { icon: Clock, label: 'Timer', path: '/timer' },
     { icon: History, label: 'History', path: '/history' },
     { icon: BarChart2, label: 'Analytics', path: '/analytics' },
-    { icon: Trophy, label: 'Achievements', path: '/achievements' },
-    { icon: Medal, label: 'Leaderboard', path: '/leaderboard' },
   ];
 
   const bottomItems = [
-    { icon: User, label: 'Profile', path: '/profile' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
@@ -29,8 +26,8 @@ const Sidebar = () => {
           key={item.path}
           to={item.path}
           className={`flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-all duration-200 ${isActive
-              ? 'bg-[var(--text-primary)] text-[var(--bg)] shadow-neu-sm'
-              : 'text-[var(--text-muted)] hover:bg-[var(--card)] hover:text-[var(--text-primary)]'
+            ? 'bg-[var(--text-primary)] text-[var(--bg)] shadow-neu-sm'
+            : 'text-[var(--text-muted)] hover:bg-[var(--card)] hover:text-[var(--text-primary)]'
             }`}
           title={item.label}
         >

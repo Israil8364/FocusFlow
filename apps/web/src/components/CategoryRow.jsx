@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
-import { Check, Trash2, Edit2, GripVertical } from 'lucide-react';
+import { Check, Trash2, Edit2, GripVertical, Target, Clock } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import supabase from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import TaskFormModal from './TaskFormModal';
 import { gsap } from "gsap";
+import { useTimerContext } from '@/contexts/TimerContext.jsx';
 
-const COLORS = {
+export const COLORS = {
   red: '#e8372a',
   orange: '#f07832',
   green: '#3aaa6e',
@@ -22,6 +23,8 @@ const COLORS = {
 
 const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { activeTask, setActiveTask } = useTimerContext();
+  const isActive = activeTask?.id === task.id;
 
   // dnd-kit sortable integration
   const {
@@ -92,7 +95,7 @@ const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging 
         style={style}
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
-        className={`group relative flex items-center justify-between p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-level-1 hover:shadow-level-2 transition-shadow duration-200 overflow-hidden border border-[var(--border)] select-none ${isDragging ? 'ring-2 ring-[var(--accent)] shadow-neu scale-[1.02]' : 'hover:scale-[1.01]'}`}
+        className={`group relative flex items-center justify-between p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-level-1 hover:shadow-level-2 transition-shadow duration-200 overflow-hidden border border-[var(--border)] select-none ${isDragging ? 'ring-2 ring-[var(--accent)] shadow-neu scale-[1.02]' : 'hover:scale-[1.01]'} ${isActive ? 'ring-2 ring-[var(--text-primary)] bg-[var(--bg)]' : ''}`}
       >
         {/* Color accent bar */}
         <div className="absolute right-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: colorValue }} />
@@ -128,8 +131,14 @@ const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging 
             >
               {task.title}
             </span>
+            {task.startTime && (
+              <span className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] mt-0.5">
+                <Clock className="w-2.5 h-2.5" />
+                {task.startTime}{task.endTime ? ` – ${task.endTime}` : ''}
+              </span>
+            )}
             {task.note && (
-              <p className="text-xs text-[var(--text-muted)] mt-1 truncate">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
                 {task.note}
               </p>
             )}
@@ -140,6 +149,13 @@ const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging 
           <span className="text-caption font-medium text-[var(--text-secondary)] whitespace-nowrap bg-[var(--bg)] px-2.5 py-1 rounded-[var(--radius-sm)]">
             {task.completedPomodoros || 0} / {task.estimatedPomodoros}
           </span>
+          <button
+            onClick={() => setActiveTask(isActive ? null : task)}
+            className={`gsap-action opacity-0 transform translate-x-2 transition-all duration-200 p-1 rounded-full ${isActive ? 'text-[var(--text-primary)] bg-[var(--bg)] shadow-sm opacity-100 translate-x-0' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+            aria-label="Focus on this task"
+          >
+            <Target className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
+          </button>
           <button
             onClick={() => setIsEditModalOpen(true)}
             className="gsap-action opacity-0 transform translate-x-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-200 p-1"

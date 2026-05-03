@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Helmet } from 'react-helmet';
-import { Plus, Trophy } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import supabase from '@/lib/supabaseClient';
+import { scheduleDayNotifications } from '@/utils/taskNotificationScheduler.js';
 import NeuomorphicTimerRing from '@/components/NeuomorphicTimerRing.jsx';
 import CategoryRow from '@/components/CategoryRow.jsx';
 import StatChip from '@/components/StatChip.jsx';
@@ -34,6 +35,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 
+import { COLORS } from '@/components/CategoryRow.jsx';
+
 const HomePage = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -44,9 +47,13 @@ const HomePage = () => {
   const [activeDragId, setActiveDragId] = useState(null);
 
   const { settings } = useSettings();
-  const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession } = useTimerContext();
+  const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession, activeTask } = useTimerContext();
   const { todayMinutes, currentStreak } = useGamification();
-  const goalMinutes = settings?.daily_goal_minutes ?? 120;
+  // daily_goal = number of Pomodoros; each is 25 min. Fall back to settings or 120 min.
+  const userDailyGoalPomodoros = currentUser?.daily_goal ?? null;
+  const goalMinutes = userDailyGoalPomodoros
+    ? userDailyGoalPomodoros * 25
+    : (settings?.daily_goal_minutes ?? 120);
   const masterRef = useRef(null);
   const timerRingRef = useRef(null);
   const plusIconRef = useRef(null);
@@ -125,10 +132,15 @@ const HomePage = () => {
           completedPomodoros: t.completed_pomodoros,
           isCompleted: t.is_completed,
           category: t.category,
-          note: t.note
+          note: t.note,
+          scheduledDate: t.scheduled_date || null,
+          startTime: t.start_time ? t.start_time.slice(0, 5) : null, // HH:MM
+          endTime: t.end_time ? t.end_time.slice(0, 5) : null,
         }));
 
         setTasks(mappedTasks);
+        // Schedule GenZ notifications based on today's tasks
+        scheduleDayNotifications(mappedTasks);
 
         // Calculate today's stats
         const todayStr = new Date().toLocaleDateString('en-CA');
@@ -140,7 +152,7 @@ const HomePage = () => {
             focusTime += r.duration;
           }
         });
-        setStats({ pomodorosToday: pomos, focusTimeToday: focusTime, dailyGoal: 60 });
+        setStats({ pomodorosToday: pomos, focusTimeToday: focusTime, dailyGoal: userDailyGoalPomodoros ?? 4 });
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -233,13 +245,6 @@ const HomePage = () => {
               <h1 className="text-display text-[var(--text-primary)]">Welcome, {currentUser?.name || 'User'}</h1>
               <p className="text-body text-[var(--text-muted)] mt-1">Ready for a productive session?</p>
             </div>
-            <Link
-              to="/achievements"
-              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm"
-            >
-              <Trophy className="w-4 h-4" />
-              <span>Progress</span>
-            </Link>
           </div>
         </header>
 
@@ -262,6 +267,13 @@ const HomePage = () => {
               </button>
             ))}
           </div>
+
+          {activeTask && (
+            <div className="mb-6 flex items-center gap-2 px-4 py-1.5 bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-pill)] animate-in slide-in-from-top-2 duration-300">
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: COLORS[activeTask.category] || 'var(--accent)' }} />
+              <span className="text-sm font-medium text-[var(--text-primary)]">Focusing on: {activeTask.title}</span>
+            </div>
+          )}
 
           <div ref={timerRingRef}>
             <NeuomorphicTimerRing
@@ -381,6 +393,9 @@ const HomePage = () => {
                 completed_pomodoros: 0,
                 category: category || 'sage',
                 is_completed: false,
+                scheduled_date: scheduledDate || null,
+                start_time: startTime || null,
+                end_time: endTime || null,
               })
               .select()
               .single();
@@ -394,10 +409,17 @@ const HomePage = () => {
               estimatedPomodoros: data.estimated_pomodoros,
               completedPomodoros: data.completed_pomodoros,
               category: data.category,
-              isCompleted: data.is_completed
+              isCompleted: data.is_completed,
+              scheduledDate: data.scheduled_date || null,
+              startTime: data.start_time ? data.start_time.slice(0, 5) : null,
+              endTime: data.end_time ? data.end_time.slice(0, 5) : null,
             };
 
-            setTasks(prev => [record, ...prev]);
+            setTasks(prev => {
+              const updated = [record, ...prev];
+              scheduleDayNotifications(updated); // re-schedule with new task
+              return updated;
+            });
             toast.success('Task added!');
           } catch (err) {
             console.error('Add task error:', err);

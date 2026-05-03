@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useGamification } from '@/contexts/GamificationContext.jsx';
+import LottieAnimation from '@/components/ui/LottieAnimation.jsx';
 
 /* Renders a self-contained confetti burst + achievement toast.
    Attach once globally inside a provider-aware component. */
@@ -8,11 +9,9 @@ export default function ConfettiToast() {
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
   const rafRef = useRef(null);
-  const visibleRef = useRef(false);
 
   useEffect(() => {
     if (!confettiTrigger) return;
-    visibleRef.current = true;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -62,7 +61,7 @@ export default function ConfettiToast() {
 
     const timer = setTimeout(() => {
       clearConfetti();
-    }, 4000);
+    }, 5000); // slightly longer to enjoy animation
 
     return () => {
       cancelAnimationFrame(rafRef.current);
@@ -82,26 +81,34 @@ export default function ConfettiToast() {
       {/* Achievement toast */}
       {confettiTrigger && (
         <div
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-4 px-6 py-4 rounded-3xl shadow-2xl"
           style={{
             background: 'rgba(15,10,30,0.95)',
             border: '1px solid rgba(139,92,246,0.5)',
-            backdropFilter: 'blur(16px)',
-            animation: 'toastIn 0.4s cubic-bezier(.34,1.56,.64,1)',
-            boxShadow: '0 0 40px rgba(139,92,246,0.3)',
+            backdropFilter: 'blur(20px)',
+            animation: 'toastIn 0.5s cubic-bezier(.34,1.56,.64,1)',
+            boxShadow: '0 0 50px rgba(139,92,246,0.4)',
+            minWidth: '320px'
           }}
         >
-          <span className="text-3xl">{confettiTrigger.emoji}</span>
-          <div>
-            <p className="text-xs text-purple-400 uppercase tracking-widest font-semibold">Achievement Unlocked</p>
-            <p className="text-sm font-bold text-white">{confettiTrigger.title}</p>
+          {confettiTrigger.lottie ? (
+            <div className="w-16 h-16 shrink-0">
+              <LottieAnimation src={confettiTrigger.lottie} loop={true} />
+            </div>
+          ) : (
+            <span className="text-4xl shrink-0">{confettiTrigger.emoji}</span>
+          )}
+          
+          <div className="flex-1">
+            <p className="text-[10px] text-purple-400 uppercase tracking-[0.2em] font-black mb-1">Achievement Unlocked</p>
+            <p className="text-lg font-black text-white leading-tight">{confettiTrigger.title}</p>
           </div>
         </div>
       )}
 
       <style>{`
         @keyframes toastIn {
-          from { opacity: 0; transform: translate(-50%, -24px) scale(0.85); }
+          from { opacity: 0; transform: translate(-50%, -40px) scale(0.9); }
           to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
         }
       `}</style>

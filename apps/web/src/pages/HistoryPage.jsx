@@ -139,15 +139,14 @@ const HistoryPage = () => {
               <p>No sessions found.</p>
             </div>
           ) : (
-            <div className="divide-y divide-[var(--border)]">
+            <div className="divide-y divide-[var(--border)] max-h-[500px] overflow-y-auto hide-scrollbar">
               {filteredSessions.map(session => (
                 <div key={session.id} className="flex items-center justify-between p-4 md:p-6 hover:bg-[var(--bg)] transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={`w-1.5 h-12 rounded-full ${session.type === 'pomodoro' ? 'bg-tomato' : 'bg-sage'}`}></div>
                     <div>
-                      <div className="font-medium text-[var(--text-primary)] capitalize flex items-center gap-2">
+                      <div className="font-medium text-[var(--text-primary)] capitalize">
                         {session.type === 'pomodoro' ? 'Focus Session' : 'Break'}
-                        <CheckCircle2 className="w-4 h-4 text-sage" />
                       </div>
                       <div className="text-sm text-[var(--text-muted)] flex items-center gap-3 mt-1">
                         <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {format(new Date(session.created_at), 'MMM d, yyyy')}</span>

@@ -257,11 +257,15 @@ export function GamificationProvider({ children }) {
 
       if (!existing) {
         await supabase.from('user_achievements').insert({ user_id: uid, achievement_id: achId });
-        // No need for setUnlockedIds as we use sessions-based memo
         const ach = ACHIEVEMENTS.find(a => a.id === achId);
         if (ach) {
           setTimeout(() => {
-            setConfettiTrigger({ title: ach.title, emoji: ach.emoji, color: '#8b5cf6' });
+            setConfettiTrigger({
+              title: ach.title,
+              emoji: ach.emoji,
+              color: '#8b5cf6',
+              lottie: ach.lottie
+            });
           }, 400);
         }
       }

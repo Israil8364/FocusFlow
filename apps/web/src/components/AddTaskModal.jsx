@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, Plus, ChevronRight, Minus } from 'lucide-react';
+import { X, Lock, Plus, ChevronRight, Minus, Calendar, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Color dots mapped to valid 'category' values in Supabase
@@ -16,6 +16,8 @@ const PROJECTS = [
   { id: 'personal', label: 'Personal', color: '#3aaa6e', tasks: 5  },
 ];
 
+const inputCls = "w-full bg-transparent px-4 py-2 text-[var(--text-primary)] text-sm font-medium outline-none placeholder:text-[var(--text-muted)]";
+
 const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
   const navigate = useNavigate();
   const [taskText, setTaskText]               = useState('');
@@ -25,6 +27,12 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
   const [activeProject, setActiveProject]     = useState('work');
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [saving, setSaving]                   = useState(false);
+
+  // ── Schedule fields
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [startTime, setStartTime]         = useState('');
+  const [endTime, setEndTime]             = useState('');
+
   const taskInputRef = useRef(null);
   const overlayRef   = useRef(null);
 
@@ -36,6 +44,9 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
       setActiveCategory('tomato');
       setEstimated(1);
       setShowProjectPicker(false);
+      setScheduledDate(new Date().toLocaleDateString('en-CA')); // default today
+      setStartTime('');
+      setEndTime('');
     }
   }, [open]);
 
@@ -59,6 +70,9 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
         estimatedPomodoros,
         category: activeCategory,
         projectId: isPremium ? activeProject : null,
+        scheduledDate: scheduledDate || null,
+        startTime: startTime || null,
+        endTime: endTime || null,
       });
       onClose();
     } finally {
@@ -95,7 +109,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
           </button>
         </div>
 
-        <div className="p-5 space-y-3 max-h-[80vh] overflow-y-auto">
+        <div className="p-5 space-y-3 max-h-[85vh] overflow-y-auto">
 
           {/* Premium: active project pill */}
           {isPremium && (
@@ -121,10 +135,10 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
               value={taskText}
               onChange={e => setTaskText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
-              className="w-full bg-transparent px-4 pb-3 text-[var(--text-primary)] text-sm font-medium outline-none placeholder:text-[var(--text-muted)]"
+              className={inputCls}
             />
             {/* Category color dots */}
-            <div className="flex items-center gap-2.5 px-4 pb-3">
+            <div className="flex items-center gap-2.5 px-4 pb-3 pt-1">
               {CATEGORIES.map(c => (
                 <button
                   key={c.id}
@@ -149,13 +163,57 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
             <textarea
               value={note}
               onChange={e => setNote(e.target.value.slice(0, 200))}
-              rows={3}
+              rows={2}
               placeholder="Add a note..."
               className="w-full bg-transparent px-4 text-[var(--text-primary)] text-sm resize-none outline-none leading-relaxed placeholder:text-[var(--text-muted)]"
             />
             <p className="text-right text-[11px] text-[var(--text-muted)] px-4 pb-2">
               {note.length} / 200
             </p>
+          </div>
+
+          {/* ── Schedule Section ── */}
+          <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
+            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-2 uppercase flex items-center gap-1.5">
+              <Calendar className="w-3 h-3" /> Schedule (optional)
+            </p>
+
+            {/* Date */}
+            <div className="px-4 pb-2">
+              <label className="text-xs text-[var(--text-muted)] mb-1 block">Date</label>
+              <input
+                type="date"
+                value={scheduledDate}
+                onChange={e => setScheduledDate(e.target.value)}
+                className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+              />
+            </div>
+
+            {/* Time row */}
+            <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Start
+                </label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={e => setStartTime(e.target.value)}
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-[var(--text-muted)] mb-1 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> End
+                </label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={e => setEndTime(e.target.value)}
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Estimated Pomodoros stepper */}

@@ -5,7 +5,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { Link } from 'react-router-dom';
-import { Play, History } from 'lucide-react';
+import { Play, History, TrendingUp, Target, Award } from 'lucide-react';
+import { COLORS } from '@/components/CategoryRow.jsx';
 
 const AnalyticsPage = () => {
   const { currentUser } = useAuth();
@@ -117,15 +118,47 @@ const AnalyticsPage = () => {
           trendData = [...barChartData];
         }
 
-        // Category breakdown (using a default for now since sessions don't have categories)
-        const categoryData = [
-          { name: 'Focus', value: totalFocusTime, color: 'var(--cobalt)' }
-        ];
+        // Real Category breakdown
+        const categoryMap = {};
+        records.forEach(r => {
+          const cat = r.category || 'Focus';
+          categoryMap[cat] = (categoryMap[cat] || 0) + r.duration;
+        });
 
-        if (totalFocusTime === 0) {
-          categoryData[0].value = 1;
-          categoryData[0].color = 'var(--border)';
-          categoryData[0].name = 'No Data';
+        const categoryData = Object.entries(categoryMap).map(([name, value]) => ({
+          name: name.charAt(0).toUpperCase() + name.slice(1),
+          value,
+          color: COLORS[name] || 'var(--accent)'
+        }));
+
+        if (categoryData.length === 0) {
+          categoryData.push({ name: 'No Data', value: 1, color: 'var(--border)' });
+        }
+
+        // Productivity Score Calculation
+        // 1. Consistency (Streak) - up to 30 pts
+        const streakScore = Math.min(30, currentStreak * 3);
+        // 2. Volume (Focus Time today) - up to 40 pts
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayMins = records.filter(r => r.date === todayStr).reduce((a, c) => a + c.duration, 0);
+        const volumeScore = Math.min(40, (todayMins / 120) * 40);
+        // 3. Efficiency (Avg Session) - up to 30 pts
+        const efficiencyScore = Math.min(30, (avgSessionLength / 25) * 30);
+        
+        const productivityScore = Math.round(streakScore + volumeScore + efficiencyScore);
+
+        // Fetch Tasks for Estimation Accuracy
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('estimated_pomodoros, completed_pomodoros')
+          .eq('user_id', currentUser.id)
+          .eq('is_completed', true);
+        
+        let accuracy = 0;
+        if (taskData && taskData.length > 0) {
+          const totalEst = taskData.reduce((a, c) => a + c.estimated_pomodoros, 0);
+          const totalAct = taskData.reduce((a, c) => a + c.completed_pomodoros, 0);
+          accuracy = totalEst ? Math.round((totalEst / (totalEst + Math.abs(totalEst - totalAct))) * 100) : 0;
         }
 
         setStats({
@@ -137,7 +170,9 @@ const AnalyticsPage = () => {
           categoryData,
           trendData,
           chartTitle,
-          trendTitle
+          trendTitle,
+          productivityScore,
+          accuracy
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -208,16 +243,20 @@ const AnalyticsPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
           {[
-            { label: 'Total Pomodoros', value: stats.totalPomodoros },
-            { label: 'Focus Time (min)', value: stats.totalFocusTime },
-            { label: 'Current Streak', value: `${stats.currentStreak} days` },
-            { label: 'Avg Session', value: `${stats.avgSessionLength}m` },
+            { label: 'Productivity Score', value: `${stats.productivityScore}%`, icon: Award, color: 'text-[var(--accent)]' },
+            { label: 'Total Focus', value: `${stats.totalFocusTime}m`, icon: TrendingUp },
+            { label: 'Estimation Accuracy', value: `${stats.accuracy}%`, icon: Target },
+            { label: 'Current Streak', value: `${stats.currentStreak}d`, icon: History },
+            { label: 'Avg Session', value: `${stats.avgSessionLength}m`, icon: Play },
           ].map((stat, i) => (
-            <div key={i} className="bg-[var(--card)] p-5 rounded-[var(--radius-md)] shadow-neu-sm border border-[var(--border)]">
-              <div className="text-eyebrow text-[var(--text-muted)] mb-2">{stat.label}</div>
-              <div className="text-2xl md:text-stat text-[var(--text-primary)]">{stat.value}</div>
+            <div key={i} className="bg-[var(--card)] p-5 rounded-[var(--radius-md)] shadow-neu-sm border border-[var(--border)] flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-eyebrow text-[var(--text-muted)]">{stat.label}</div>
+                {stat.icon && <stat.icon className={`w-4 h-4 ${stat.color || 'text-[var(--text-muted)]'}`} />}
+              </div>
+              <div className="text-2xl md:text-stat text-[var(--text-primary)] font-bold">{stat.value}</div>
             </div>
           ))}
         </div>

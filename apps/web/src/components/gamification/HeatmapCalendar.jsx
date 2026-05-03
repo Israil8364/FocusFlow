@@ -5,10 +5,10 @@ const WEEKS = 53;
 const DAYS = 7;
 
 const LEVELS = [
-  { min: 0,   color: 'transparent', border: 'var(--border)' },
-  { min: 1,   color: '#4c1d95' },
-  { min: 25,  color: '#6d28d9' },
-  { min: 60,  color: '#7c3aed' },
+  { min: 0, color: 'transparent', border: 'var(--border)' },
+  { min: 1, color: '#4c1d95' },
+  { min: 25, color: '#6d28d9' },
+  { min: 60, color: '#7c3aed' },
   { min: 120, color: '#8b5cf6' },
   { min: 180, color: '#a78bfa' },
 ];

@@ -36,12 +36,12 @@ const StreakDots = ({ streak }) => {
 const StreakWidget = () => {
   const { currentStreak, longestStreak, streakFreezes, useStreakFreeze } = useGamification();
 
-  const fireRef    = useRef(null);
+  const fireRef = useRef(null);
   const fireGsapRef = useRef(null); // store tween to kill on cleanup
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 480;
 
   /* Determine fire size and play state */
-  const fireSize   = isMobile ? 48 : (currentStreak >= 7 ? 72 : 56);
+  const fireSize = isMobile ? 48 : (currentStreak >= 7 ? 72 : 56);
   const fireActive = currentStreak > 0;
 
   /* GSAP: pulse scale on fireRef if streak >= 7 */
