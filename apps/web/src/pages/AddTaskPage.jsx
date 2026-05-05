@@ -62,7 +62,7 @@ const AddTaskPage = () => {
         <title>Add Task — FocusFlow</title>
       </Helmet>
 
-      <div className="max-w-lg mx-auto p-4 md:p-8 animate-in fade-in duration-300">
+      <div className="max-w-lg mx-auto p-4 pb-20 md:p-8 animate-in fade-in duration-300">
         {/* Free / Premium toggle */}
         <div className="flex justify-center mb-6">
           <div className="flex p-1 gap-1 rounded-[var(--radius-pill)] bg-[var(--card)] border border-[var(--border)] shadow-neu-sm">

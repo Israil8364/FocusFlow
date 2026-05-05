@@ -51,7 +51,7 @@ const DashboardLayout = ({ children }) => {
         <div className="gsap-sidebar hidden md:block sticky top-[64px] h-[calc(100vh-64px)]">
           <Sidebar />
         </div>
-        <main className="gsap-main flex-1 pb-[64px] md:pb-0">
+        <main className="gsap-main flex-1 pb-[120px] md:pb-0">
           {children}
         </main>
       </div>
