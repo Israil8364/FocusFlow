@@ -37,6 +37,9 @@ export const useTaskManager = (userId) => {
         order: t.order,
         category: t.category,
         note: t.note,
+        scheduledDate: t.scheduled_date,
+        startTime: t.start_time,
+        endTime: t.end_time,
         createdAt: t.created_at
       }));
 
@@ -67,8 +70,11 @@ export const useTaskManager = (userId) => {
           user_id: userId,
           is_completed: false,
           order: maxOrder + 1,
-          category: options.category || 'red',
-          note: options.note || ''
+          category: options.category || 'sage',
+          note: options.note || '',
+          scheduled_date: options.scheduledDate || null,
+          start_time: options.startTime || null,
+          end_time: options.endTime || null
         })
         .select()
         .single();
@@ -85,6 +91,9 @@ export const useTaskManager = (userId) => {
         order: data.order,
         category: data.category,
         note: data.note,
+        scheduledDate: data.scheduled_date,
+        startTime: data.start_time,
+        endTime: data.end_time,
         createdAt: data.created_at
       };
       
@@ -108,6 +117,9 @@ export const useTaskManager = (userId) => {
       if (updates.order !== undefined) dbUpdates.order = updates.order;
       if (updates.category !== undefined) dbUpdates.category = updates.category;
       if (updates.note !== undefined) dbUpdates.note = updates.note;
+      if (updates.scheduledDate !== undefined) dbUpdates.scheduled_date = updates.scheduledDate;
+      if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+      if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
 
       const { data, error: err } = await supabase
         .from('tasks')
@@ -128,6 +140,9 @@ export const useTaskManager = (userId) => {
         order: data.order,
         category: data.category,
         note: data.note,
+        scheduledDate: data.scheduled_date,
+        startTime: data.start_time,
+        endTime: data.end_time,
         createdAt: data.created_at
       };
 

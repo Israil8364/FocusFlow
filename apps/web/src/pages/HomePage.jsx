@@ -381,7 +381,7 @@ const HomePage = () => {
       <AddTaskModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAdd={async ({ title, note, estimatedPomodoros, category }) => {
+        onAdd={async ({ title, note, estimatedPomodoros, category, scheduledDate, startTime, endTime }) => {
           try {
             const { data, error } = await supabase
               .from('tasks')
