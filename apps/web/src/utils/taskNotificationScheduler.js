@@ -33,24 +33,14 @@ function randomPick(arr) {
 
 // ─── Permission Helper ────────────────────────────────────────────────────────
 
+import { requestNotificationPermission as baseRequestPermission, showNotification } from './notificationManager';
+
 export async function requestNotificationPermission() {
-  if (!('Notification' in window)) return false;
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission === 'denied') return false;
-  const perm = await Notification.requestPermission();
-  return perm === 'granted';
+  return await baseRequestPermission();
 }
 
 // ─── Fire a single browser notification ──────────────────────────────────────
 
-function fireNotification(title, body, icon = '/favicon.ico') {
-  if (Notification.permission !== 'granted') return;
-  try {
-    new Notification(title, { body, icon, badge: '/favicon.ico' });
-  } catch (e) {
-    console.warn('[TaskNotifier] Could not show notification:', e);
-  }
-}
 
 // ─── Schedule pre-task notifications ─────────────────────────────────────────
 // Stores timeout IDs in module-level map so we can clear them on re-schedule
@@ -96,7 +86,7 @@ export async function scheduleDayNotifications(tasks) {
       : randomPick(MORNING_MESSAGES_FEW);
 
     const morningTimeoutId = setTimeout(() => {
-      fireNotification(
+      showNotification(
         '🗓️ FocusFlow — Today\'s Plan',
         `${morningMsg} (${todayTasks.length} task${todayTasks.length > 1 ? 's' : ''} scheduled)`
       );
@@ -120,7 +110,7 @@ export async function scheduleDayNotifications(tasks) {
     const body = msgFn(task.title);
 
     const id = setTimeout(() => {
-      fireNotification(`⏰ Starting soon — ${task.title}`, body);
+      showNotification(`⏰ Starting soon — ${task.title}`, body);
     }, delay);
 
     scheduledTimeouts.set(`task-${idx}`, id);

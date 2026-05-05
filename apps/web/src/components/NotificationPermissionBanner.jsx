@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellOff, X } from 'lucide-react';
-import { requestNotificationPermission } from '@/utils/notificationManager';
+import { requestNotificationPermission, showNotification } from '@/utils/notificationManager';
 
 const STORAGE_KEY = 'focusflow_notif_banner_dismissed';
 
@@ -32,9 +32,8 @@ const NotificationPermissionBanner = () => {
     dismiss();
     if (granted) {
       // Small test notification so the user sees it worked
-      new Notification('FocusFlow notifications enabled ✅', {
+      showNotification('FocusFlow notifications enabled ✅', {
         body: "You'll be alerted when your timer ends, even in another tab.",
-        icon: '/favicon.ico',
         tag: 'focusflow-welcome',
       });
     }

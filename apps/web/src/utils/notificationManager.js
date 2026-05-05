@@ -71,43 +71,44 @@ export const requestNotificationPermission = async () => {
   return false;
 };
 
-export const showNotification = (title, body) => {
-  // Use browser permission as the ONLY gate — not the DB setting
+export const showNotification = async (title, bodyOrOptions) => {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
 
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      // Use ServiceWorker registration for better background support when available
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification(title, {
-            body,
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            tag: 'focusflow-timer',
-            renotify: true,
-            requireInteraction: false,
-            vibrate: [200, 100, 200],
-          });
-        }).catch(() => {
-          // Fallback to plain Notification
-          new Notification(title, {
-            body,
-            icon: '/favicon.ico',
-            tag: 'focusflow-timer',
-            renotify: true,
-          });
-        });
-      } else {
-        new Notification(title, {
-          body,
-          icon: '/favicon.ico',
-          tag: 'focusflow-timer',
-          renotify: true,
-        });
+  const options = typeof bodyOrOptions === 'string' 
+    ? { body: bodyOrOptions } 
+    : bodyOrOptions;
+
+  const finalOptions = {
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: 'focusflow-timer',
+    renotify: true,
+    vibrate: [200, 100, 200],
+    ...options
+  };
+
+  try {
+    // 1. Always try Service Worker first — mandatory for mobile stability
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(title, finalOptions);
+          return;
+        }
+      } catch (swErr) {
+        console.warn('SW notification failed, falling back:', swErr);
       }
-    } catch (e) {
-      console.warn('Failed to show notification:', e);
     }
+
+    // 2. Fallback to regular constructor for Desktop browsers
+    // Note: This will fail on most mobile browsers, hence the SW priority above
+    if (typeof Notification !== 'undefined') {
+      new Notification(title, finalOptions);
+    }
+  } catch (e) {
+    console.warn('❌ Could not show notification:', e);
   }
 };
 
