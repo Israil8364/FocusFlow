@@ -38,6 +38,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
 
   useEffect(() => {
     if (open) {
+      document.body.style.overflow = 'hidden';
       setTimeout(() => taskInputRef.current?.focus(), 120);
       setTaskText('');
       setNote('');
@@ -47,7 +48,12 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
       setScheduledDate(new Date().toLocaleDateString('en-CA')); // default today
       setStartTime('');
       setEndTime('');
+    } else {
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [open]);
 
   useEffect(() => {
@@ -86,7 +92,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
     <div
       ref={overlayRef}
       className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
       <div

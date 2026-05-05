@@ -65,12 +65,36 @@ const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging 
     }
   };
 
+  const onEnter = (e) => {
+    if (isDragging) return;
+    const el = e.currentTarget;
+    gsap.to(el.querySelectorAll(".gsap-action"), {
+      opacity: 1,
+      x: 0,
+      stagger: 0.05,
+      duration: 0.3,
+      ease: "power2.out"
+    });
+  };
+
+  const onLeave = (e) => {
+    const el = e.currentTarget;
+    gsap.to(el.querySelectorAll(".gsap-action"), {
+      opacity: 0,
+      x: 5,
+      stagger: 0.05,
+      duration: 0.2,
+      ease: "power2.in"
+    });
+  };
 
   return (
     <>
       <div
         ref={setNodeRef}
         style={style}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
         className={`group relative flex items-center justify-between p-4 md:p-5 bg-[var(--card)] rounded-[var(--radius-md)] shadow-level-1 hover:shadow-level-2 transition-shadow duration-200 overflow-hidden border border-[var(--border)] select-none ${isDragging ? 'ring-2 ring-[var(--accent)] shadow-neu scale-[1.02]' : 'hover:scale-[1.01]'} ${isActive ? 'ring-2 ring-[var(--text-primary)] bg-[var(--bg)]' : ''}`}
       >
         {/* Color accent bar */}
@@ -122,26 +146,26 @@ const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging 
         </div>
 
         <div className="flex items-center gap-3 ml-4 pr-3">
-          <span className="hidden sm:inline text-caption font-medium text-[var(--text-secondary)] whitespace-nowrap bg-[var(--bg)] px-2.5 py-1 rounded-[var(--radius-sm)]">
+          <span className="text-caption font-medium text-[var(--text-secondary)] whitespace-nowrap bg-[var(--bg)] px-2.5 py-1 rounded-[var(--radius-sm)]">
             {task.completedPomodoros || 0} / {task.estimatedPomodoros}
           </span>
           <button
             onClick={() => setActiveTask(isActive ? null : task)}
-            className={`transition-all duration-200 p-1 rounded-full ${isActive ? 'text-[var(--text-primary)] bg-[var(--bg)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+            className={`gsap-action opacity-0 transform translate-x-2 transition-all duration-200 p-1 rounded-full ${isActive ? 'text-[var(--text-primary)] bg-[var(--bg)] shadow-sm opacity-100 translate-x-0' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
             aria-label="Focus on this task"
           >
             <Target className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
           </button>
           <button
             onClick={() => setIsEditModalOpen(true)}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-200 p-1"
+            className="gsap-action opacity-0 transform translate-x-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-200 p-1"
             aria-label="Edit task"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            className="text-[var(--text-muted)] hover:text-[var(--accent)] transition-all duration-200 p-1"
+            className="gsap-action opacity-0 transform translate-x-2 text-[var(--text-muted)] hover:text-[var(--accent)] transition-all duration-200 p-1"
             aria-label="Delete task"
           >
             <Trash2 className="w-4 h-4" />
