@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(localStorage.getItem(GUEST_KEY) === 'true');
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   console.log('🛡️ AuthProvider Render - Loading:', loading, 'IsGuest:', isGuest);
 
@@ -86,7 +85,6 @@ export const AuthProvider = ({ children }) => {
         };
         
         setCurrentUser(basicUserData);
-        setNeedsOnboarding(false);
 
         // Step 2: Fetch profile in background with a safety timeout
         try {
@@ -110,20 +108,19 @@ export const AuthProvider = ({ children }) => {
             React.startTransition(() => {
               setCurrentUser(fullUserData);
             });
-            const needsOnboard = !profile.onboarding_completed;
-            setNeedsOnboarding(needsOnboard);
+            React.startTransition(() => {
+              setCurrentUser(fullUserData);
+            });
             return fullUserData;
           }
         } catch (profileError) {
           console.warn('⚠️ Profile fetch skipped/failed:', profileError.message);
-          setNeedsOnboarding(true);
         }
         
         return basicUserData;
       } else {
         console.log('👤 No session found, clearing user');
         setCurrentUser(null);
-        setNeedsOnboarding(false);
         return null;
       }
     } catch (err) {
@@ -332,7 +329,6 @@ export const AuthProvider = ({ children }) => {
           if (updates.daily_goal) newState.daily_goal = updates.daily_goal;
           if (updates.onboarding_completed !== undefined) {
             newState.onboarding_completed = updates.onboarding_completed;
-            setNeedsOnboarding(!updates.onboarding_completed);
           }
           return newState;
         });
@@ -345,24 +341,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const completeOnboarding = async ({ displayName, avatarUrl, dailyGoal }) => {
-    try {
-      console.log('🚀 Finalizing onboarding for:', displayName);
-      await updateProfile({
-        full_name: displayName,
-        avatar_url: avatarUrl,
-        daily_goal: dailyGoal,
-        onboarding_completed: true
-      });
-      
-      // Explicitly set onboarding state to false to trigger navigation
-      setNeedsOnboarding(false);
-      return true;
-    } catch (error) {
-      console.error('❌ Error finalizing onboarding:', error);
-      throw error;
-    }
-  };
 
   return (
     <AuthContext.Provider value={{
@@ -370,7 +348,6 @@ export const AuthProvider = ({ children }) => {
       loading,
       isAuthenticated: !!currentUser,
       isGuest,
-      needsOnboarding,
       login,
       signup,
       resendVerification,
@@ -380,8 +357,7 @@ export const AuthProvider = ({ children }) => {
       continueAsGuest,
       requestPasswordReset,
       confirmPasswordReset,
-      updateProfile,
-      completeOnboarding
+      updateProfile
     }}>
       {children}
     </AuthContext.Provider>

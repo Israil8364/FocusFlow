@@ -34,7 +34,6 @@ const UpgradePage = React.lazy(() => import('@/pages/UpgradePage.jsx'));
 const AddTaskPage = React.lazy(() => import('@/pages/AddTaskPage.jsx'));
 const TermsPage = React.lazy(() => import('@/pages/TermsPage.jsx'));
 const PrivacyPage = React.lazy(() => import('@/pages/PrivacyPage.jsx'));
-const OnboardingPage = React.lazy(() => import('@/pages/OnboardingPage.jsx'));
 const DashboardLayout = ({ children }) => {
   const layoutRef = useRef(null);
 
@@ -62,9 +61,7 @@ const DashboardLayout = ({ children }) => {
 };
 
 const AppRoutes = () => {
-  const { loading, isAuthenticated, isGuest, needsOnboarding } = useAuth();
-  // Redirect authenticated (non-guest) users to onboarding if profile incomplete
-  const showOnboarding = isAuthenticated && !isGuest && needsOnboarding;
+  const { loading, isAuthenticated, isGuest } = useAuth();
 
   return (
     <Routes>
@@ -73,19 +70,18 @@ const AppRoutes = () => {
       <Route path="/verification-pending" element={<VerificationPendingPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
 
       <Route path="/" element={
         <ProtectedRoute>
-          {showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><HomePage /></DashboardLayout>}
+          <DashboardLayout><HomePage /></DashboardLayout>
         </ProtectedRoute>
       } />
-      <Route path="/timer" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><TimerPage /></DashboardLayout>}</ProtectedRoute>} />
-      <Route path="/history" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><HistoryPage /></DashboardLayout>}</ProtectedRoute>} />
-      <Route path="/analytics" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><AnalyticsPage /></DashboardLayout>}</ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><SettingsPage /></DashboardLayout>}</ProtectedRoute>} />
-      <Route path="/upgrade" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><UpgradePage /></DashboardLayout>}</ProtectedRoute>} />
-      <Route path="/add-task" element={<ProtectedRoute>{showOnboarding ? <Navigate to="/onboarding" replace /> : <DashboardLayout><AddTaskPage /></DashboardLayout>}</ProtectedRoute>} />
+      <Route path="/timer" element={<ProtectedRoute><DashboardLayout><TimerPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/history" element={<ProtectedRoute><DashboardLayout><HistoryPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute><DashboardLayout><AnalyticsPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><DashboardLayout><SettingsPage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/upgrade" element={<ProtectedRoute><DashboardLayout><UpgradePage /></DashboardLayout></ProtectedRoute>} />
+      <Route path="/add-task" element={<ProtectedRoute><DashboardLayout><AddTaskPage /></DashboardLayout></ProtectedRoute>} />
 
       {/* Legal Routes */}
       <Route path="/terms" element={<TermsPage />} />
