@@ -85,7 +85,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
       style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
@@ -109,7 +109,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
           </button>
         </div>
 
-        <div className="p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+        <div className="px-5 pt-2 pb-32 space-y-3 max-h-[80vh] overflow-y-auto">
 
           {/* Premium: active project pill */}
           {isPremium && (
@@ -127,7 +127,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
 
           {/* Task title */}
           <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden focus-within:border-[var(--text-muted)] transition-colors">
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-1 uppercase">Task</p>
+            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-2 pb-0 uppercase">Task</p>
             <input
               ref={taskInputRef}
               type="text"
