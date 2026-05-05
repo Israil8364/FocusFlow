@@ -15,6 +15,20 @@ const THEMES = [
   { id: 'theme-ocean', label: 'Ocean', bg: '#e8f0f7', accent: '#3a7bd5', textPrimary: '#1a3a5c', textMuted: '#5a8ab0' },
 ];
 
+const Section = ({ title, icon: Icon, children }) => (
+  <div className="bg-[var(--card)] rounded-[var(--radius-lg)] shadow-neu-sm border border-[var(--border)] p-6 mb-6">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
+      <div className="p-2 bg-[var(--bg)] rounded-md text-[var(--text-primary)]">
+        <Icon className="w-5 h-5" />
+      </div>
+      <h2 className="text-subheading">{title}</h2>
+    </div>
+    <div className="space-y-6">
+      {children}
+    </div>
+  </div>
+);
+
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { currentUser, logout, updateProfile } = useAuth();
@@ -149,20 +163,6 @@ const SettingsPage = () => {
       setSaving(false);
     }
   };
-
-  const Section = ({ title, icon: Icon, children }) => (
-    <div className="bg-[var(--card)] rounded-[var(--radius-lg)] shadow-neu-sm border border-[var(--border)] p-6 mb-6">
-      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--border)]">
-        <div className="p-2 bg-[var(--bg)] rounded-md text-[var(--text-primary)]">
-          <Icon className="w-5 h-5" />
-        </div>
-        <h2 className="text-subheading">{title}</h2>
-      </div>
-      <div className="space-y-6">
-        {children}
-      </div>
-    </div>
-  );
 
   return (
     <>
