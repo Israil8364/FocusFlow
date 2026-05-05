@@ -17,7 +17,7 @@ const THEMES = [
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const { currentUser, logout, refreshProfile } = useAuth();
+  const { currentUser, logout, updateProfile } = useAuth();
   const { settings, updateSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState(settings);
   const [saving, setSaving] = useState(false);
@@ -28,10 +28,12 @@ const SettingsPage = () => {
   const [name, setName] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [dailyGoal, setDailyGoal] = useState(4);
 
   useEffect(() => {
     if (currentUser) {
       setName(currentUser.name || '');
+      setDailyGoal(currentUser.daily_goal || 4);
       const url = currentUser.avatar 
         ? (currentUser.avatar.startsWith('http') ? currentUser.avatar : supabase.storage.from('avatars').getPublicUrl(currentUser.avatar).data.publicUrl)
         : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}&backgroundColor=f0ede8`;
@@ -59,37 +61,30 @@ const SettingsPage = () => {
 
     setSaving(true);
     try {
-      // 1. Save Settings
+      // 1. Save Settings (Local Storage)
       await updateSettings(localSettings);
 
-      // 2. Save Profile if changed
+      // 2. Save Profile (Supabase)
       let avatarUrl = currentUser.avatar;
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${currentUser.id}/${Math.random()}.${fileExt}`;
+        const fileName = `${currentUser.id}/avatar.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(fileName, avatarFile, { upsert: true });
 
         if (uploadError) throw uploadError;
-        avatarUrl = fileName;
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+        avatarUrl = urlData.publicUrl + '?t=' + Date.now();
       }
 
-      if (name !== currentUser.name || avatarFile) {
-        const { error } = await supabase
-          .from('profiles')
-          .upsert({
-            id: currentUser.id,
-            email: currentUser?.email,
-            full_name: name,
-            avatar_url: avatarUrl,
-            updated_at: new Date().toISOString()
-          });
+      const profileUpdates = {
+        full_name: name,
+        avatar_url: avatarUrl,
+        daily_goal: dailyGoal
+      };
 
-        if (error) throw error;
-        await refreshProfile();
-      }
-
+      await updateProfile(profileUpdates);
       toast.success('Settings and profile updated');
     } catch (error) {
       toast.error('Failed to save changes');
@@ -251,7 +246,26 @@ const SettingsPage = () => {
               </div>
             </div>
           </div>
+          <div className="mt-8 pt-6 border-t border-[var(--border)]">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Daily Goal</label>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="1"
+                max="12"
+                step="1"
+                value={dailyGoal}
+                onChange={(e) => setDailyGoal(parseInt(e.target.value))}
+                className="flex-1 accent-[var(--accent)]"
+              />
+              <div className="w-24 text-center py-1 bg-[var(--bg)] border border-[var(--border)] rounded-md font-bold text-[var(--text-primary)]">
+                {dailyGoal} <span className="text-[10px] font-medium text-[var(--text-muted)]">POMS</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-[var(--text-muted)] mt-2 italic">Target number of focus sessions per day. (1 pomodoro = 25 minutes)</p>
+          </div>
         </Section>
+
 
         {/* Upgrade Banner */}
         <button

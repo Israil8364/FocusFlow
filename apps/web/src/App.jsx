@@ -11,20 +11,6 @@ import ScrollToTop from '@/components/ScrollToTop.jsx';
 import ProtectedRoute from '@/components/ProtectedRoute.jsx';
 import LenisScroll from '@/components/LenisScroll.jsx';
 import LoadingAnimation from '@/components/LoadingAnimation.jsx';
-import HomePage from '@/pages/HomePage.jsx';
-import LoginPage from '@/pages/LoginPage.jsx';
-import SignupPage from '@/pages/SignupPage.jsx';
-import VerificationPendingPage from '@/pages/VerificationPendingPage.jsx';
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage.jsx';
-import ResetPasswordPage from '@/pages/ResetPasswordPage.jsx';
-import TimerPage from '@/pages/TimerPage.jsx';
-import HistoryPage from '@/pages/HistoryPage.jsx';
-import SettingsPage from '@/pages/SettingsPage.jsx';
-import AnalyticsPage from '@/pages/AnalyticsPage.jsx';
-import UpgradePage from '@/pages/UpgradePage.jsx';
-import AddTaskPage from '@/pages/AddTaskPage.jsx';
-import TermsPage from '@/pages/TermsPage.jsx';
-import PrivacyPage from '@/pages/PrivacyPage.jsx';
 import Navbar from '@/components/Navbar.jsx';
 import Sidebar from '@/components/Sidebar.jsx';
 import BottomTabBar from '@/components/BottomTabBar.jsx';
@@ -32,7 +18,23 @@ import GuestBanner from '@/components/GuestBanner.jsx';
 import NotificationPermissionBanner from '@/components/NotificationPermissionBanner.jsx';
 import { GamificationProvider } from '@/contexts/GamificationContext.jsx';
 import ConfettiToast from '@/components/gamification/ConfettiToast.jsx';
-import OnboardingPage from '@/pages/OnboardingPage.jsx';
+
+// Lazy load pages
+const HomePage = React.lazy(() => import('@/pages/HomePage.jsx'));
+const LoginPage = React.lazy(() => import('@/pages/LoginPage.jsx'));
+const SignupPage = React.lazy(() => import('@/pages/SignupPage.jsx'));
+const VerificationPendingPage = React.lazy(() => import('@/pages/VerificationPendingPage.jsx'));
+const ForgotPasswordPage = React.lazy(() => import('@/pages/ForgotPasswordPage.jsx'));
+const ResetPasswordPage = React.lazy(() => import('@/pages/ResetPasswordPage.jsx'));
+const TimerPage = React.lazy(() => import('@/pages/TimerPage.jsx'));
+const HistoryPage = React.lazy(() => import('@/pages/HistoryPage.jsx'));
+const SettingsPage = React.lazy(() => import('@/pages/SettingsPage.jsx'));
+const AnalyticsPage = React.lazy(() => import('@/pages/AnalyticsPage.jsx'));
+const UpgradePage = React.lazy(() => import('@/pages/UpgradePage.jsx'));
+const AddTaskPage = React.lazy(() => import('@/pages/AddTaskPage.jsx'));
+const TermsPage = React.lazy(() => import('@/pages/TermsPage.jsx'));
+const PrivacyPage = React.lazy(() => import('@/pages/PrivacyPage.jsx'));
+const OnboardingPage = React.lazy(() => import('@/pages/OnboardingPage.jsx'));
 const DashboardLayout = ({ children }) => {
   const layoutRef = useRef(null);
 
@@ -61,12 +63,6 @@ const DashboardLayout = ({ children }) => {
 
 const AppRoutes = () => {
   const { loading, isAuthenticated, isGuest, needsOnboarding } = useAuth();
-  console.log('🔍 AppRoutes loading state:', loading);
-
-  if (loading) {
-    return <LoadingAnimation />;
-  }
-
   // Redirect authenticated (non-guest) users to onboarding if profile incomplete
   const showOnboarding = isAuthenticated && !isGuest && needsOnboarding;
 
@@ -111,7 +107,9 @@ function App() {
               <ScrollToTop />
               <NotificationPermissionBanner />
               <ConfettiToast />
-              <AppRoutes />
+              <React.Suspense fallback={<LoadingAnimation />}>
+                <AppRoutes />
+              </React.Suspense>
               <Toaster
                 toastOptions={{
                   className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',

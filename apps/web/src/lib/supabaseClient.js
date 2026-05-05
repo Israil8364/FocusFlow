@@ -9,6 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.log('🔌 Supabase Client Initializing with URL:', supabaseUrl);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: 'sb-focusflow-auth-v1'
+  }
+});
 
 export default supabase;

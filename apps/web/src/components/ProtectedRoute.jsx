@@ -1,20 +1,13 @@
-
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
+import LoadingAnimation from './LoadingAnimation.jsx';
 
 const ProtectedRoute = ({ children }) => {
-  const { currentUser, isAuthenticated, isGuest, initialLoading } = useAuth();
+  const { currentUser, isAuthenticated, isGuest, loading } = useAuth();
 
-  if (initialLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <LoadingAnimation />;
   }
 
   if (!isAuthenticated && !isGuest) {

@@ -23,9 +23,10 @@ const C = {
 const VerificationPendingPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { resendVerification, currentUser } = useAuth();
+  const { resendVerification, currentUser, refreshAuth } = useAuth();
   const email = location.state?.email || '';
   const [loading, setLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const timerRef = useRef(null);
 
@@ -50,13 +51,24 @@ const VerificationPendingPage = () => {
     };
   }, []);
 
-  // Auto-redirect if user becomes authenticated (e.g. after clicking link in another tab)
+  // Auto-redirect if user becomes verified (e.g. after clicking link in another tab)
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.verified) {
       navigate('/', { replace: true });
       toast.success('Email verified successfully!');
     }
-  }, [currentUser, navigate]);
+  }, [currentUser?.verified, navigate]);
+
+  // Auto-refresh status periodically
+  useEffect(() => {
+    if (currentUser?.verified) return;
+
+    const interval = setInterval(() => {
+      refreshAuth();
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [currentUser?.verified, refreshAuth]);
 
   const handleResend = async () => {
     if (!email) {
@@ -75,6 +87,21 @@ const VerificationPendingPage = () => {
     }
   };
 
+  const handleCheckStatus = async () => {
+    setIsChecking(true);
+    try {
+      const latestUser = await refreshAuth();
+      // If latestUser.verified is true, the useEffect will handle redirect
+      if (!latestUser?.verified) {
+        toast.info('Status updated. Still waiting for verification...');
+      }
+    } catch (err) {
+      toast.error('Failed to check status');
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -83,6 +110,10 @@ const VerificationPendingPage = () => {
         <style>{`
           .cta-btn:hover { background: ${C.ctaHover} !important; }
           .cta-btn:active { transform: scale(0.98); }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
           @media (max-width: 640px) {
             .auth-content-panel { padding: 32px 24px !important; }
           }
@@ -122,13 +153,32 @@ const VerificationPendingPage = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <button 
-                onClick={() => navigate('/login')}
+                onClick={handleCheckStatus}
+                disabled={isChecking}
                 className="cta-btn" 
                 style={{
                   width: '100%', height: 52,
                   background: C.cta, border: 'none', borderRadius: 8,
                   color: '#fff', fontWeight: 600, fontSize: 15,
-                  cursor: 'pointer', transition: 'background 0.18s, transform 0.12s',
+                  cursor: isChecking ? 'not-allowed' : 'pointer', transition: 'background 0.18s, transform 0.12s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                }}
+              >
+                {isChecking ? (
+                  <>
+                    <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+                    Checking...
+                  </>
+                ) : "I've verified my email"}
+              </button>
+
+              <button 
+                onClick={() => navigate('/login')}
+                style={{
+                  width: '100%', height: 44,
+                  background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8,
+                  color: C.primary, fontWeight: 500, fontSize: 14,
+                  cursor: 'pointer', transition: 'all 0.18s',
                 }}
               >
                 Back to Login

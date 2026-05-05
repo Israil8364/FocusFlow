@@ -23,10 +23,10 @@ export const AuthProvider = ({ children }) => {
   const fetchProfile = async (userId) => {
     console.log('🔍 fetchProfile started for:', userId);
     try {
-      // Create a promise that rejects after 3 seconds
+      // Create a promise that rejects after 15 seconds
       let timeoutId;
       const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+        timeoutId = setTimeout(() => reject(new Error('Profile fetch timeout')), 15000);
       });
 
       // Execute the query
@@ -54,115 +54,138 @@ export const AuthProvider = ({ children }) => {
     try {
       let session = existingSession;
       if (!session) {
+        // Only use getSession if we don't already have one
         const { data } = await supabase.auth.getSession();
         session = data.session;
       }
 
       if (session?.user) {
+        // Use the session user immediately. Only fetch server-side user if we don't have a session
+        // or if we explicitly need to verify the email confirmation status.
+        let userToUse = session.user;
+        
+        // Optimization: If this is an existing session, we trust its user data for the 'eager' load
+        // This avoids hitting the Supabase Auth Lock which causes hangs in React 18
+        if (!existingSession) {
+          try {
+            const { data: { user: latestUser } } = await supabase.auth.getUser();
+            if (latestUser) userToUse = latestUser;
+          } catch (e) {
+            console.warn('⚠️ Could not fetch latest user status, using session user.');
+          }
+        }
+        
+        console.log('👤 User verification status:', userToUse.email_confirmed_at ? 'Verified' : 'Pending');
+
         // Step 1: Set user immediately with session data (eager update)
         const basicUserData = {
-          ...session.user,
-          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
-          avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
-          verified: !!session.user.email_confirmed_at
+          ...userToUse,
+          name: userToUse.user_metadata?.full_name || userToUse.user_metadata?.name || userToUse.email.split('@')[0],
+          avatar: userToUse.user_metadata?.avatar_url || userToUse.user_metadata?.picture || '',
+          verified: !!userToUse.email_confirmed_at
         };
-        console.log('👤 Eager user data set:', basicUserData.email);
+        
         setCurrentUser(basicUserData);
-        // Reset onboarding flag on new session
         setNeedsOnboarding(false);
 
-        // Step 2: Fetch profile in background and merge
-        const profile = await fetchProfile(session.user.id);
-        if (profile) {
-          const fullUserData = {
-            ...basicUserData,
-            ...profile,
-            name: profile.full_name || basicUserData.name,
-            avatar: profile.avatar_url || basicUserData.avatar,
-          };
-          console.log('👤 Full user profile merged');
-          setCurrentUser(fullUserData);
-          // Determine if onboarding is needed (missing name or daily goal)
-          const needsOnboard = !profile.full_name || profile.daily_goal == null;
-          setNeedsOnboarding(needsOnboard);
-        } else {
+        // Step 2: Fetch profile in background with a safety timeout
+        try {
+          const profilePromise = fetchProfile(userToUse.id);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Profile timeout')), 3000)
+          );
+
+          const profile = await Promise.race([profilePromise, timeoutPromise]);
+          
+          if (profile) {
+            const fullUserData = {
+              id: userToUse.id,
+              email: userToUse.email,
+              ...profile,
+              name: profile.full_name || basicUserData.name,
+              avatar: profile.avatar_url || basicUserData.avatar,
+              verified: !!userToUse.email_confirmed_at
+            };
+            console.log('👤 Full user profile merged:', fullUserData.name);
+            React.startTransition(() => {
+              setCurrentUser(fullUserData);
+            });
+            const needsOnboard = !profile.onboarding_completed;
+            setNeedsOnboarding(needsOnboard);
+            return fullUserData;
+          }
+        } catch (profileError) {
+          console.warn('⚠️ Profile fetch skipped/failed:', profileError.message);
           setNeedsOnboarding(true);
         }
+        
+        return basicUserData;
       } else {
         console.log('👤 No session found, clearing user');
         setCurrentUser(null);
+        setNeedsOnboarding(false);
+        return null;
       }
     } catch (err) {
       console.error('❌ refreshUser error:', err);
-      setCurrentUser(null);
+      return null;
     } finally {
       console.log('🔄 refreshUser complete');
     }
   };
 
+  const refreshAuth = async () => {
+    return await refreshUser();
+  };
+
   useEffect(() => {
     let mounted = true;
-    let authChecked = false;
+    let initialized = false;
 
-    const initializeAuth = async () => {
-      // Safety timeout
-      const timeoutId = setTimeout(() => {
-        if (mounted && !authChecked) {
-          console.warn('⚠️ Auth check timed out. Forcing UI load.');
+    // Safety timeout to ensure loading spinner doesn't stay forever
+    const timeoutId = setTimeout(() => {
+      if (mounted && !initialized) {
+        console.warn('⚠️ Auth initialization timeout. Releasing UI.');
+        React.startTransition(() => {
           setLoading(false);
-        }
-      }, 8000);
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          // Non-blocking refresh
-          refreshUser(session);
-        }
-      } catch (err) {
-        console.error('❌ Auth initialization error:', err);
-      } finally {
-        if (mounted) {
-          authChecked = true;
-          clearTimeout(timeoutId);
-          setLoading(false);
-        }
+        });
       }
-    };
-
-    initializeAuth();
+    }, 6000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔔 Auth State Event:', event, 'User:', session?.user?.email || 'None');
-
+      console.log(`🔔 Auth Event: ${event}`, session?.user?.email ? `User: ${session.user.email}` : 'No User');
+      
       try {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        // We always refresh user on these events or on the first event (initialization)
+        if (!initialized || ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
           if (mounted) {
-            // Eagerly unblock loading if it's the first sign in
-            const updatePromise = refreshUser(session);
-            if (!authChecked) {
-              await updatePromise;
-            }
+            await refreshUser(session);
           }
         } else if (event === 'SIGNED_OUT') {
           if (mounted) {
-            setCurrentUser(null);
-            setIsGuest(false);
+            React.startTransition(() => {
+              setCurrentUser(null);
+              setIsGuest(false);
+            });
             localStorage.removeItem(GUEST_KEY);
           }
         }
       } catch (err) {
-        console.error('❌ Auth state change error:', err);
+        console.error('❌ Auth refresh error:', err);
       } finally {
-        if (mounted) {
-          authChecked = true;
-          setLoading(false);
+        if (mounted && !initialized) {
+          initialized = true;
+          clearTimeout(timeoutId);
+          React.startTransition(() => {
+            setLoading(false);
+          });
         }
       }
     });
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
@@ -279,56 +302,88 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const completeOnboarding = async ({ displayName, avatarUrl, dailyGoal }) => {
+  const updateProfile = async (updates) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (!userId) throw new Error('No authenticated user');
 
-      const updates = {
-        id: userId,
-        full_name: displayName,
-        avatar_url: avatarUrl || null,
-        daily_goal: dailyGoal,
-        updated_at: new Date().toISOString(),
-      };
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: session.user.email,
+          updated_at: new Date().toISOString(),
+          ...updates
+        });
 
-      const { error } = await supabase.from('profiles').upsert(updates);
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase upsert error:', error);
+        throw error;
+      }
+      
+      // Update local state immediately with a clean merge
+      React.startTransition(() => {
+        setCurrentUser(prev => {
+          const newState = { ...prev, ...updates };
+          // Map database fields to local state fields
+          if (updates.full_name) newState.name = updates.full_name;
+          if (updates.avatar_url) newState.avatar = updates.avatar_url;
+          if (updates.daily_goal) newState.daily_goal = updates.daily_goal;
+          if (updates.onboarding_completed !== undefined) {
+            newState.onboarding_completed = updates.onboarding_completed;
+            setNeedsOnboarding(!updates.onboarding_completed);
+          }
+          return newState;
+        });
+      });
 
-      setCurrentUser(prev => ({
-        ...prev,
-        name: displayName,
-        full_name: displayName,
-        avatar: avatarUrl || prev?.avatar || '',
-        avatar_url: avatarUrl || prev?.avatar_url || '',
-        daily_goal: dailyGoal,
-      }));
-      setNeedsOnboarding(false);
-    } catch (err) {
-      console.error('❌ completeOnboarding error:', err);
-      throw err;
+      return true;
+    } catch (error) {
+      console.error('Update profile failed:', error);
+      throw error;
     }
   };
 
-  const value = {
-    currentUser,
-    isAuthenticated: !!currentUser,
-    isGuest,
-    loading,
-    initialLoading: loading,
-    login,
-    signup,
-    loginWithGoogle,
-    resendVerification,
-    requestPasswordReset,
-    confirmPasswordReset,
-    logout,
-    continueAsGuest,
-    refreshProfile: refreshUser,
-    needsOnboarding,
-    completeOnboarding,
+  const completeOnboarding = async ({ displayName, avatarUrl, dailyGoal }) => {
+    try {
+      console.log('🚀 Finalizing onboarding for:', displayName);
+      await updateProfile({
+        full_name: displayName,
+        avatar_url: avatarUrl,
+        daily_goal: dailyGoal,
+        onboarding_completed: true
+      });
+      
+      // Explicitly set onboarding state to false to trigger navigation
+      setNeedsOnboarding(false);
+      return true;
+    } catch (error) {
+      console.error('❌ Error finalizing onboarding:', error);
+      throw error;
+    }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{
+      currentUser,
+      loading,
+      isAuthenticated: !!currentUser,
+      isGuest,
+      needsOnboarding,
+      login,
+      signup,
+      resendVerification,
+      loginWithGoogle,
+      logout,
+      refreshAuth,
+      continueAsGuest,
+      requestPasswordReset,
+      confirmPasswordReset,
+      updateProfile,
+      completeOnboarding
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

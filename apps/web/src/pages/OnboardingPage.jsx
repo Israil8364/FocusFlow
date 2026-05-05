@@ -103,7 +103,9 @@ function StepAvatar({ displayName, avatarUrl, onAvatarChange, onNext, onSkip }) 
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       const ext = file.name.split('.').pop();
-      const path = `avatars/${userId}.${ext}`;
+      // Path inside the bucket — use a folder named after userId to match RLS policies
+      const path = `${userId}/avatar.${ext}`;
+
 
       const { error: upErr } = await supabase.storage
         .from('avatars')
@@ -229,14 +231,30 @@ function StepGoal({ value, onChange, onFinish, loading }) {
 
 /* ─────────────── Main Onboarding Page ─────────────── */
 export default function OnboardingPage() {
-  const { completeOnboarding, currentUser } = useAuth();
+  const { completeOnboarding, currentUser, needsOnboarding, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Safety: if already onboarded and not loading, redirect to home
+  React.useEffect(() => {
+    if (!loading && currentUser && !needsOnboarding) {
+      navigate('/', { replace: true });
+    }
+  }, [loading, currentUser, needsOnboarding, navigate]);
+
 
   const [step, setStep] = useState(0);
   const [displayName, setDisplayName] = useState(currentUser?.name || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar || '');
   const [dailyGoal, setDailyGoal] = useState(4);
   const [saving, setSaving] = useState(false);
+
+  // Sync state with currentUser when it loads (important for Google Auth users who already have name/avatar)
+  React.useEffect(() => {
+    if (currentUser) {
+      if (!displayName && currentUser.name) setDisplayName(currentUser.name);
+      if (!avatarUrl && currentUser.avatar) setAvatarUrl(currentUser.avatar);
+    }
+  }, [currentUser]);
 
   const handleFinish = async () => {
     setSaving(true);
