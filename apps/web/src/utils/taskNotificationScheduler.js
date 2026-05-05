@@ -23,7 +23,7 @@ const PRE_TASK_MESSAGES = [
   (task) => `respectfully... "${task}" won't do itself 😩`,
   (task) => `bestie "${task}" is on the way, u ready?? 👀`,
   (task) => `the "${task}" era is upon us 🔔`,
-  (task) => `"${task}" incoming in 5 🚨`,
+  (task) => `"${task}" incoming in 2 🚨`,
   (task) => `ngl "${task}" is bout to slap if u show up fr 🔥`,
 ];
 
@@ -100,8 +100,8 @@ export async function scheduleDayNotifications(tasks) {
     const taskStart = new Date();
     taskStart.setHours(h, m, 0, 0);
 
-    // Notify 5 minutes before
-    const notifyAt = new Date(taskStart.getTime() - 5 * 60 * 1000);
+    // Notify 2 minutes before
+    const notifyAt = new Date(taskStart.getTime() - 2 * 60 * 1000);
     const delay = notifyAt.getTime() - now.getTime();
 
     if (delay < 0) return; // Already past
