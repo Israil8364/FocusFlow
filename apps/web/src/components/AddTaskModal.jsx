@@ -91,12 +91,12 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-0"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
       <div
-        className="w-full sm:max-w-md bg-[var(--card)] sm:rounded-[var(--radius-lg)] rounded-t-[var(--radius-lg)] border border-[var(--border)] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom-4 duration-300"
+        className="w-full sm:max-w-md bg-[var(--card)] rounded-[var(--radius-lg)] border border-[var(--border)] shadow-[0_8px_40px_rgba(0,0,0,0.2)] animate-in slide-in-from-bottom-4 duration-300 mb-20 sm:mb-0"
         onClick={e => e.stopPropagation()}
       >
         {/* Mobile drag handle */}
