@@ -39,8 +39,11 @@ const DashboardLayout = ({ children }) => {
 
   useGSAP(() => {
     const tl = gsap.timeline();
-    tl.from(".gsap-sidebar", { x: -30, opacity: 0, duration: 0.8, ease: "power3.out" })
-      .from(".gsap-main", { opacity: 0, y: 10, duration: 0.6, ease: "power2.out" }, "-=0.6");
+    // Only animate sidebar if it's potentially visible (md and up)
+    if (window.innerWidth >= 768) {
+      tl.from(".gsap-sidebar", { x: -30, opacity: 0, duration: 0.8, ease: "power3.out" });
+    }
+    tl.from(".gsap-main", { opacity: 0, y: 10, duration: 0.6, ease: "power2.out" }, "-=0.6");
   }, { scope: layoutRef });
 
   return (

@@ -241,9 +241,9 @@ const HomePage = () => {
 
         <header className="gsap-header">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-display text-[var(--text-primary)]">Welcome, {currentUser?.name || 'User'}</h1>
-              <p className="text-body text-[var(--text-muted)] mt-1">Ready for a productive session?</p>
+            <div className="max-w-full overflow-hidden">
+              <h1 className="text-display text-[var(--text-primary)] break-words leading-tight">Welcome, {currentUser?.name || 'User'}</h1>
+              <p className="text-body text-[var(--text-muted)] mt-1 break-words">Ready for a productive session?</p>
             </div>
           </div>
         </header>
@@ -302,7 +302,7 @@ const HomePage = () => {
 
         <section className="gsap-tasks">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-heading">Today's Tasks</h2>
+            <h2 className="text-heading truncate">Today's Tasks</h2>
             <button
               onClick={() => setShowAddModal(true)}
               onMouseEnter={() => gsap.to(plusIconRef.current, { rotation: 90, duration: 0.3, ease: "power2.out" })}

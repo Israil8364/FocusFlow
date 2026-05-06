@@ -107,11 +107,11 @@
 
 @layer utilities {
   .text-display {
-    @apply font-bold text-[40px] leading-[1.1] tracking-[-0.02em];
+    @apply font-bold text-[32px] md:text-[40px] leading-[1.1] tracking-[-0.02em];
   }
 
   .text-heading {
-    @apply font-semibold text-[26px] leading-[1.2] tracking-[-0.01em];
+    @apply font-semibold text-[22px] md:text-[26px] leading-[1.2] tracking-[-0.01em];
   }
 
   .text-subheading {
