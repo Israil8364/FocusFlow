@@ -41,7 +41,7 @@ const NeuomorphicTimerRing = ({ progress, time, mode, isRunning }) => {
 
   return (
     <div 
-      className="relative flex items-center justify-center w-[280px] h-[280px] md:w-[360px] md:h-[360px] lg:w-[420px] lg:h-[420px] rounded-[var(--radius-circle)] shadow-neu bg-[var(--bg)] mx-auto transition-all duration-500" 
+      className="relative flex items-center justify-center w-[260px] h-[260px] sm:w-[280px] sm:h-[280px] md:w-[360px] md:h-[360px] lg:w-[420px] lg:h-[420px] rounded-[var(--radius-circle)] shadow-neu bg-[var(--bg)] mx-auto transition-all duration-500" 
       role="timer" 
       aria-live="polite" 
       aria-label={`Session timer: ${time}`}

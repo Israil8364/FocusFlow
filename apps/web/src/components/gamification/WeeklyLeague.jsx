@@ -19,7 +19,8 @@ const WeeklyLeague = () => {
   const progress = getProgress(weeklyXP);
 
   return (
-    <div className="bg-[var(--card)] p-6 md:p-8 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-sm">
+    <div className="bg-[var(--card)] p-4 sm:p-6 md:p-8 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-sm overflow-x-auto">
+      <div className="min-w-[280px]">
       <div className="flex items-center justify-between mb-12">
         <h3 className="text-xl font-bold text-[var(--text-primary)]">Weekly League</h3>
         <span className="text-sm font-medium text-[var(--text-muted)]">
@@ -93,6 +94,7 @@ const WeeklyLeague = () => {
         <p className="text-xs text-[var(--text-muted)] font-medium">
           Earn XP from focus sessions to climb leagues. Resets every Monday.
         </p>
+      </div>
       </div>
     </div>
   );
