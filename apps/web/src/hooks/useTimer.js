@@ -35,44 +35,9 @@ export const useTimer = (settings, onComplete) => {
     if (accumulatedTimeRef.current >= 1000) {
       const secondsToSubtract = Math.floor(accumulatedTimeRef.current / 1000);
       accumulatedTimeRef.current = accumulatedTimeRef.current % 1000;
-
       setTimeLeft(prev => {
         const newTime = Math.max(0, prev - secondsToSubtract);
-        
-        if (newTime === 0) {
-          setIsRunning(false);
-          
-          notifyTimerComplete(
-            mode,
-            settings?.notificationsEnabled ?? true,
-            settings?.soundEnabled ?? true
-          );
-
-          if (onComplete) {
-            onComplete(mode, durations[mode]);
-          }
-
-          if (mode === 'pomodoro') {
-            const newCount = pomodoroCount + 1;
-            setPomodoroCount(newCount);
-            
-            if (settings?.autoStartBreak) {
-              const nextMode = newCount % 4 === 0 ? 'longBreak' : 'shortBreak';
-              setTimeout(() => {
-                setMode(nextMode);
-                setTimeLeft(durations[nextMode]);
-                setIsRunning(true);
-              }, 1000);
-            }
-          } else if (settings?.autoStartPomodoro) {
-            setTimeout(() => {
-              setMode('pomodoro');
-              setTimeLeft(durations.pomodoro);
-              setIsRunning(true);
-            }, 1000);
-          }
-        }
-        
+        if (newTime === 0) setIsRunning(false);
         return newTime;
       });
     }
@@ -80,7 +45,43 @@ export const useTimer = (settings, onComplete) => {
     if (isRunning) {
       animationFrameRef.current = requestAnimationFrame(tick);
     }
-  }, [isRunning, mode, durations, pomodoroCount, settings, onComplete]);
+  }, [isRunning]);
+
+  // Handle timer completion side effects
+  useEffect(() => {
+    if (timeLeft === 0 && !isRunning) {
+      // Small delay to ensure state has settled
+      const timer = setTimeout(() => {
+        notifyTimerComplete(
+          mode,
+          settings?.soundEnabled ?? true,
+          settings?.soundType || 'bell',
+          settings?.notificationsEnabled ?? true
+        );
+
+        if (onComplete) {
+          onComplete(mode, durations[mode]);
+        }
+
+        if (mode === 'pomodoro') {
+          const newCount = pomodoroCount + 1;
+          setPomodoroCount(newCount);
+          
+          if (settings?.autoStartBreak) {
+            const nextMode = newCount % 4 === 0 ? 'longBreak' : 'shortBreak';
+            setMode(nextMode);
+            setTimeLeft(durations[nextMode]);
+            setIsRunning(true);
+          }
+        } else if (settings?.autoStartPomodoro) {
+          setMode('pomodoro');
+          setTimeLeft(durations.pomodoro);
+          setIsRunning(true);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [timeLeft, isRunning, mode, settings, onComplete, durations, pomodoroCount]);
 
   useEffect(() => {
     if (isRunning) {

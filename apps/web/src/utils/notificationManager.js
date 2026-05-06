@@ -112,7 +112,7 @@ export const showNotification = async (title, bodyOrOptions) => {
   }
 };
 
-export const notifyTimerComplete = (mode, soundEnabled, soundType = 'bell') => {
+export const notifyTimerComplete = (mode, soundEnabled, soundType = 'bell', notificationsEnabled = true) => {
   const messages = {
     pomodoro: {
       title: '🍅 Focus session complete!',
@@ -130,6 +130,11 @@ export const notifyTimerComplete = (mode, soundEnabled, soundType = 'bell') => {
 
   const message = messages[mode] || messages.pomodoro;
 
-  playNotificationSound(soundEnabled, soundType);
-  showNotification(message.title, message.body);
+  if (soundEnabled) {
+    playNotificationSound(true, soundType);
+  }
+  
+  if (notificationsEnabled) {
+    showNotification(message.title, message.body);
+  }
 };
