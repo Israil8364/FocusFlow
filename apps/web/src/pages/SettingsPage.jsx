@@ -4,8 +4,8 @@ import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useSettings } from '@/contexts/SettingsContext.jsx';
 import { toast } from 'sonner';
-import { Save, Bell, Monitor, Shield, Clock, Check, Sparkles, ChevronRight, Play, User, Mail, Camera, LogOut, Trash2 } from 'lucide-react';
-import { playNotificationSound } from '@/utils/notificationManager.js';
+import { Save, Bell, BellOff, Monitor, Shield, Clock, Check, Sparkles, ChevronRight, Play, User, Mail, Camera, LogOut, Trash2 } from 'lucide-react';
+import { playNotificationSound, requestNotificationPermission, showNotification } from '@/utils/notificationManager.js';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from '@/components/ConfirmationModal.jsx';
 
@@ -401,6 +401,33 @@ const SettingsPage = () => {
 
         <Section title="Sound & Notifications" icon={Bell}>
           <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">Browser Notifications</div>
+              <div className="text-sm text-[var(--text-muted)]">Get alerts even when FocusFlow is in another tab</div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={localSettings.notificationsEnabled} 
+                onChange={async (e) => {
+                  const checked = e.target.checked;
+                  if (checked) {
+                    const granted = await requestNotificationPermission();
+                    if (!granted) {
+                      toast.error('Notification permission denied by browser');
+                      return;
+                    }
+                    showNotification('Notifications Enabled ✅', 'You will now receive alerts for your tasks.');
+                  }
+                  handleChange('notificationsEnabled', checked);
+                }} 
+              />
+              <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--text-primary)]"></div>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-[var(--border)] mt-4">
             <div>
               <div className="font-medium">Sound Enabled</div>
               <div className="text-sm text-[var(--text-muted)]">Play sound when timer completes</div>

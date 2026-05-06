@@ -109,7 +109,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
           </button>
         </div>
 
-        <div className="px-5 pt-2 pb-32 space-y-3 max-h-[80vh] overflow-y-auto">
+        <div className="px-5 pt-1 pb-32 space-y-2.5 max-h-[80vh] overflow-y-auto">
 
           {/* Premium: active project pill */}
           {isPremium && (
@@ -127,7 +127,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
 
           {/* Task title */}
           <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden focus-within:border-[var(--text-muted)] transition-colors">
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-2 pb-0 uppercase">Task</p>
+            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-1.5 pb-0 uppercase">Task</p>
             <input
               ref={taskInputRef}
               type="text"
@@ -159,7 +159,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
 
           {/* Note */}
           <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden focus-within:border-[var(--text-muted)] transition-colors">
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-1 uppercase">Note</p>
+            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-2 pb-0.5 uppercase">Note</p>
             <textarea
               value={note}
               onChange={e => setNote(e.target.value.slice(0, 200))}
@@ -174,7 +174,7 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
 
           {/* ── Schedule Section ── */}
           <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-2 uppercase flex items-center gap-1.5">
+            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-2 pb-1.5 uppercase flex items-center gap-1.5">
               <Calendar className="w-3 h-3" /> Schedule (optional)
             </p>
 
