@@ -31,7 +31,12 @@ const TaskFormModal = ({
   const [estimatedPomodoros, setEstimated] = useState(1);
   const [activeProject, setActiveProject] = useState('work');
   const [showProjectPicker, setShowProjectPicker] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]                   = useState(false);
+
+  // ── Schedule fields
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledFrom, setScheduledFrom] = useState('');
+  const [scheduledTo, setScheduledTo]     = useState('');
   const taskInputRef = useRef(null);
   const overlayRef = useRef(null);
 
@@ -42,11 +47,17 @@ const TaskFormModal = ({
         setNote(task.note || '');
         setActiveCategory(task.category || 'tomato');
         setEstimated(task.estimatedPomodoros || 1);
+        setScheduledDate(task.scheduledDate || new Date().toLocaleDateString('en-CA'));
+        setScheduledFrom(task.startTime || '');
+        setScheduledTo(task.endTime || '');
       } else {
         setTaskText('');
         setNote('');
         setActiveCategory('tomato');
         setEstimated(1);
+        setScheduledDate(new Date().toLocaleDateString('en-CA'));
+        setScheduledFrom('');
+        setScheduledTo('');
       }
       setShowProjectPicker(false);
       setTimeout(() => taskInputRef.current?.focus(), 120);
@@ -77,6 +88,9 @@ const TaskFormModal = ({
         estimatedPomodoros,
         category: activeCategory,
         projectId: isPremium ? activeProject : null,
+        scheduledDate: scheduledFrom ? (scheduledDate || new Date().toISOString().split('T')[0]) : null,
+        startTime: scheduledFrom || null,
+        endTime: scheduledTo || null,
       });
       onClose();
     } catch (error) {
@@ -179,9 +193,49 @@ const TaskFormModal = ({
             <p className="text-right text-[11px] text-[var(--text-muted)] px-4 pb-2">
               {note.length} / 200
             </p>
-          </div>
+            </div>
+            
+            {/* ── Schedule Section ── */}
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
+              <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-1.5 uppercase flex items-center gap-1.5">
+                Schedule (optional)
+              </p>
 
-          {/* Estimated Pomodoros stepper */}
+              <div className="px-4 pb-2">
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">Date</label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                />
+              </div>
+
+              <div className="px-4 pb-3 flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] mb-1 uppercase">From</label>
+                  <input
+                    type="time"
+                    value={scheduledFrom}
+                    onChange={e => setScheduledFrom(e.target.value)}
+                    style={{ height: '44px' }}
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] mb-1 uppercase">To</label>
+                  <input
+                    type="time"
+                    value={scheduledTo}
+                    onChange={e => setScheduledTo(e.target.value)}
+                    style={{ height: '44px' }}
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Estimated Pomodoros stepper */}
           <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] px-4 py-3 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-[var(--text-primary)]">Estimated pomodoros</p>

@@ -18,6 +18,7 @@ import GuestBanner from '@/components/GuestBanner.jsx';
 import NotificationPermissionBanner from '@/components/NotificationPermissionBanner.jsx';
 import { GamificationProvider } from '@/contexts/GamificationContext.jsx';
 import ConfettiToast from '@/components/gamification/ConfettiToast.jsx';
+import TaskNotificationListener from '@/components/TaskNotificationListener.jsx';
 
 // Lazy load pages
 const HomePage = React.lazy(() => import('@/pages/HomePage.jsx'));
@@ -104,11 +105,12 @@ function App() {
           <TimerProvider>
             <GamificationProvider>
               <ScrollToTop />
-              <NotificationPermissionBanner />
-              <ConfettiToast />
-              <React.Suspense fallback={<LoadingAnimation />}>
-                <AppRoutes />
-              </React.Suspense>
+      <NotificationPermissionBanner />
+      <ConfettiToast />
+      <TaskNotificationListener />
+      <React.Suspense fallback={<LoadingAnimation />}>
+        <AppRoutes />
+      </React.Suspense>
               <Toaster
                 toastOptions={{
                   className: 'bg-[var(--card)] text-[var(--text-primary)] border border-[var(--border)] shadow-neu-sm rounded-[var(--radius-md)] font-sans',

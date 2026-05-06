@@ -30,8 +30,8 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
 
   // ── Schedule fields
   const [scheduledDate, setScheduledDate] = useState('');
-  const [startTime, setStartTime]         = useState('');
-  const [endTime, setEndTime]             = useState('');
+  const [scheduledFrom, setScheduledFrom] = useState('');
+  const [scheduledTo, setScheduledTo]     = useState('');
 
   const taskInputRef = useRef(null);
   const overlayRef   = useRef(null);
@@ -45,8 +45,8 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
       setEstimated(1);
       setShowProjectPicker(false);
       setScheduledDate(new Date().toLocaleDateString('en-CA')); // default today
-      setStartTime('');
-      setEndTime('');
+      setScheduledFrom('');
+      setScheduledTo('');
     }
   }, [open]);
 
@@ -70,9 +70,9 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
         estimatedPomodoros,
         category: activeCategory,
         projectId: isPremium ? activeProject : null,
-        scheduledDate: scheduledDate || null,
-        startTime: startTime || null,
-        endTime: endTime || null,
+        scheduledDate: scheduledFrom ? (scheduledDate || new Date().toISOString().split('T')[0]) : null,
+        startTime: scheduledFrom || null,
+        endTime: scheduledTo || null,
       });
       onClose();
     } finally {
@@ -190,27 +190,31 @@ const AddTaskModal = ({ open, onClose, onAdd, isPremium = false }) => {
             </div>
 
             {/* Time row */}
-            <div className="px-4 pb-3 grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs text-[var(--text-muted)] mb-1 flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Start
+            <div className="px-4 pb-3 flex gap-2">
+              <div className="flex-1">
+                <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] mb-1 uppercase flex items-center gap-1">
+                  From
                 </label>
                 <input
                   type="time"
-                  value={startTime}
-                  onChange={e => setStartTime(e.target.value)}
-                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                  placeholder="09:00"
+                  value={scheduledFrom}
+                  onChange={e => setScheduledFrom(e.target.value)}
+                  style={{ height: '44px' }}
+                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
                 />
               </div>
-              <div>
-                <label className="text-xs text-[var(--text-muted)] mb-1 flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> End
+              <div className="flex-1">
+                <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] mb-1 uppercase flex items-center gap-1">
+                  To
                 </label>
                 <input
                   type="time"
-                  value={endTime}
-                  onChange={e => setEndTime(e.target.value)}
-                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                  placeholder="17:00"
+                  value={scheduledTo}
+                  onChange={e => setScheduledTo(e.target.value)}
+                  style={{ height: '44px' }}
+                  className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
                 />
               </div>
             </div>

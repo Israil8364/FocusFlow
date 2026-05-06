@@ -402,8 +402,8 @@ const SettingsPage = () => {
         <Section title="Sound & Notifications" icon={Bell}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium">Browser Notifications</div>
-              <div className="text-sm text-[var(--text-muted)]">Get alerts even when FocusFlow is in another tab</div>
+              <div className="font-medium">Timer Notifications</div>
+              <div className="text-sm text-[var(--text-muted)]">Get alerts when focus or break sessions end</div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
@@ -418,7 +418,7 @@ const SettingsPage = () => {
                       toast.error('Notification permission denied by browser');
                       return;
                     }
-                    showNotification('Notifications Enabled ✅', 'You will now receive alerts for your tasks.');
+                    showNotification('Timer alerts active ⚡', 'We will buzz u when the timer hits zero.');
                   }
                   handleChange('notificationsEnabled', checked);
                 }} 
@@ -427,10 +427,75 @@ const SettingsPage = () => {
             </label>
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-[var(--border)] mt-4">
+          <div className="pt-6 mt-6 border-t border-[var(--border)]">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-bold text-[15px] flex items-center gap-2">
+                  Smart Task Reminders <Sparkles className="w-4 h-4 text-[var(--accent)]" />
+                </div>
+                <div className="text-sm text-[var(--text-muted)]">Get notified before your scheduled tasks start. no cap.</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={localStorage.getItem('focusflow_taskRemindersEnabled') !== 'false'} 
+                  onChange={(e) => {
+                    localStorage.setItem('focusflow_taskRemindersEnabled', e.target.checked);
+                    // Force re-render if needed or just use state, but we'll use a simple state for UI
+                    window.dispatchEvent(new Event('storage'));
+                    toast.success(e.target.checked ? 'Task reminders enabled fr' : 'Task reminders disabled 💀');
+                  }} 
+                />
+                <div className="w-11 h-6 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--text-primary)]"></div>
+              </label>
+            </div>
+
+            <div className="space-y-4 ml-2">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">Lead Time</label>
+                <div className="flex gap-2">
+                  {[2, 5, 10].map(min => {
+                    const currentLead = parseInt(localStorage.getItem('focusflow_taskReminderLeadTime') || '5');
+                    const isActive = currentLead === min;
+                    return (
+                      <button
+                        key={min}
+                        onClick={() => {
+                          localStorage.setItem('focusflow_taskReminderLeadTime', min);
+                          window.dispatchEvent(new Event('storage'));
+                          toast.success(`We'll buzz u ${min} mins early ⚡`);
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                          isActive 
+                            ? 'bg-[var(--text-primary)] text-[var(--bg)] shadow-md scale-105' 
+                            : 'bg-[var(--bg)] border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-primary)]'
+                        }`}
+                      >
+                        {min} mins before
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  import('@/utils/taskNotificationScheduler').then(m => {
+                    m.triggerTaskNotification({ title: 'Sample Task', id: 'sample', startTime: '12:00' });
+                  });
+                }}
+                className="text-[11px] font-bold text-[var(--accent)] hover:underline flex items-center gap-1 mt-2"
+              >
+                <Bell className="w-3 h-3" /> Test vibe check notification
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-6 border-t border-[var(--border)] mt-6">
             <div>
               <div className="font-medium">Sound Enabled</div>
-              <div className="text-sm text-[var(--text-muted)]">Play sound when timer completes</div>
+              <div className="text-sm text-[var(--text-muted)]">Play sound for all alerts</div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={localSettings.soundEnabled} onChange={(e) => handleChange('soundEnabled', e.target.checked)} />

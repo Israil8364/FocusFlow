@@ -134,7 +134,9 @@ const HomePage = () => {
           category: t.category,
           note: t.note,
           scheduledDate: t.scheduled_date || null,
-          startTime: t.start_time ? t.start_time.slice(0, 5) : null, // HH:MM
+          scheduledFrom: t.start_time ? t.start_time.slice(0, 5) : null, // HH:MM
+          scheduledTo: t.end_time ? t.end_time.slice(0, 5) : null,
+          startTime: t.start_time ? t.start_time.slice(0, 5) : null, // Compatibility for scheduler
           endTime: t.end_time ? t.end_time.slice(0, 5) : null,
         }));
 
@@ -411,7 +413,9 @@ const HomePage = () => {
               category: data.category,
               isCompleted: data.is_completed,
               scheduledDate: data.scheduled_date || null,
-              startTime: data.start_time ? data.start_time.slice(0, 5) : null,
+              scheduledFrom: data.start_time ? data.start_time.slice(0, 5) : null,
+              scheduledTo: data.end_time ? data.end_time.slice(0, 5) : null,
+              startTime: data.start_time ? data.start_time.slice(0, 5) : null, // for scheduler
               endTime: data.end_time ? data.end_time.slice(0, 5) : null,
             };
 

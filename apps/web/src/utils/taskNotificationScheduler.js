@@ -1,118 +1,181 @@
-// ─── GenZ Notification Messages ──────────────────────────────────────────────
 
-const MORNING_MESSAGES_MANY = [
-  "bestie u got a PACKED schedule today, no cap 😤🔥",
-  "bro woke up and chose PRODUCTIVITY frfr 💪",
-  "ur schedule lookin busier than ur read receipts rn 😭",
-  "you got LOTS of tasks cooking today, better not flop 🍳",
-  "today's looking unhinged ngl, u got this tho 🫡",
-  "bestie that todo list is NOT playing around 😤",
-  "main character energy only today, u got loads to do 🎬",
-];
+import { playNotificationSound } from './notificationManager';
 
-const MORNING_MESSAGES_FEW = [
-  "small era, big vibes — just a couple tasks today 🌿",
-  "light day incoming, don't let the slay slip 😌✨",
-  "chill schedule today, still gotta show up tho fr 🫶",
-  "just vibing with a few tasks, no pressure bestie 💅",
-];
+/* Store active timers so we can cancel them */
+const activeTimers = new Map();
+// key: taskId, value: timeoutId
 
-const PRE_TASK_MESSAGES = [
-  (task) => `ayo it's almost ${task} o'clock 👀 get up, bestie`,
-  (task) => `"${task}" is about to start rn, no ghosting 🏃‍♂️💨`,
-  (task) => `respectfully... "${task}" won't do itself 😩`,
-  (task) => `bestie "${task}" is on the way, u ready?? 👀`,
-  (task) => `the "${task}" era is upon us 🔔`,
-  (task) => `"${task}" incoming in 2 🚨`,
-  (task) => `ngl "${task}" is bout to slap if u show up fr 🔥`,
-];
+export const requestTaskNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    console.warn('Browser does not support notifications');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') return true;
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }
+  
+  return false;
+};
 
-function randomPick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
+export const scheduleTaskNotification = (task) => {
+  /* Read settings */
+  const remindersEnabled = localStorage.getItem('focusflow_taskRemindersEnabled') !== 'false';
+  const leadMinutes = parseInt(localStorage.getItem('focusflow_taskReminderLeadTime') || '5');
+  
+  if (!remindersEnabled) return;
 
-// ─── Permission Helper ────────────────────────────────────────────────────────
-
-import { requestNotificationPermission as baseRequestPermission, showNotification } from './notificationManager';
-
-export async function requestNotificationPermission() {
-  return await baseRequestPermission();
-}
-
-// ─── Fire a single browser notification ──────────────────────────────────────
-
-
-// ─── Schedule pre-task notifications ─────────────────────────────────────────
-// Stores timeout IDs in module-level map so we can clear them on re-schedule
-
-const scheduledTimeouts = new Map();
-
-export function clearScheduledNotifications() {
-  scheduledTimeouts.forEach(id => clearTimeout(id));
-  scheduledTimeouts.clear();
-}
-
-/**
- * Main scheduler — call this whenever today's tasks are fetched.
- * @param {Array} tasks - Array of task objects with scheduled_date, start_time, etc.
- */
-export async function scheduleDayNotifications(tasks) {
-  const permitted = await requestNotificationPermission();
-  if (!permitted) return;
-
-  clearScheduledNotifications();
-
-  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  /* Only schedule if task has scheduledFrom time and a date */
+  if (!task.startTime || !task.scheduledDate) return;
+  
+  /* Parse the scheduled datetime */
+  const [hours, minutes] = task.startTime.split(':').map(Number);
+  const [year, month, day] = task.scheduledDate.split('-').map(Number);
+  const scheduledDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  
+  /* Calculate lead time before */
+  const notifyAt = new Date(scheduledDate.getTime() - leadMinutes * 60 * 1000);
   const now = new Date();
+  const delay = notifyAt.getTime() - now.getTime();
+  
+  /* Don't schedule if time already passed */
+  if (delay <= 0) return;
+  
+  /* Cancel existing timer for this task if any */
+  if (activeTimers.has(task.id)) {
+    clearTimeout(activeTimers.get(task.id));
+  }
+  
+  /* Set the timer */
+  const timerId = setTimeout(() => {
+    triggerTaskNotification(task);
+    activeTimers.delete(task.id);
+  }, delay);
+  
+  activeTimers.set(task.id, timerId);
+  
+  console.log(
+    `Notification scheduled for task "${task.title}" ` +
+    `at ${notifyAt.toLocaleTimeString()}`
+  );
+};
 
-  // Filter to today's scheduled tasks with a start_time
-  const todayTasks = tasks
-    .filter(t => t.scheduledDate === todayStr && t.startTime)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+export const cancelTaskNotification = (taskId) => {
+  if (activeTimers.has(taskId)) {
+    clearTimeout(activeTimers.get(taskId));
+    activeTimers.delete(taskId);
+  }
+};
 
-  if (todayTasks.length === 0) return;
+export const cancelAllTaskNotifications = () => {
+  activeTimers.forEach(timerId => clearTimeout(timerId));
+  activeTimers.clear();
+};
 
-  // ── Daily morning summary notification (fires immediately if before earliest task)
-  const earliestTask = todayTasks[0];
-  const [eHour, eMin] = earliestTask.startTime.split(':').map(Number);
-  const earliestStart = new Date();
-  earliestStart.setHours(eHour, eMin, 0, 0);
+/* Schedule all tasks for current user */
+export const scheduleDayNotifications = (tasks) => {
+  if (!tasks) return;
+  tasks.forEach(task => {
+    if (!task.isCompleted) {
+      scheduleTaskNotification(task);
+    }
+  });
+};
 
-  // If we haven't passed the earliest task yet, fire a morning message
-  if (now < earliestStart) {
-    // Fire the morning summary right now (or with a tiny delay)
-    const morningMsg = todayTasks.length >= 3
-      ? randomPick(MORNING_MESSAGES_MANY)
-      : randomPick(MORNING_MESSAGES_FEW);
+const GENZ_MESSAGES = [
+  {
+    title: "⏰ task alert bestie",
+    body: (task, time) => 
+      `"${task.title}" is in a bit (${time}) no cap 🔥 get in the zone`
+  },
+  {
+    title: "🚨 lowkey important rn",
+    body: (task, time) => 
+      `your task "${task.title}" starts at ${time} fr fr don't ghost it 💀`
+  },
+  {
+    title: "✨ slay check incoming",
+    body: (task, time) => 
+      `"${task.title}" @ ${time} — time to eat and leave no crumbs 💅`
+  },
+  {
+    title: "📍 task o'clock bestie",
+    body: (task, time) => 
+      `"${task.title}" in a few. that's your sign to lock in 🎯`
+  },
+  {
+    title: "🔔 not to be that guy but—",
+    body: (task, time) => 
+      `"${task.title}" is literally at ${time}. you got this tho 💪`
+  },
+  {
+    title: "⚡ main character moment",
+    body: (task, time) => 
+      `heads up: "${task.title}" @ ${time}. 
+       this is ur villain origin story era 🦹`
+  },
+  {
+    title: "🎯 focus szn activated",
+    body: (task, time) => 
+      `"${task.title}" starts at ${time}. 
+       close tiktok, open grindset 💻`
+  },
+  {
+    title: "👀 PSA from FocusFlow",
+    body: (task, time) => 
+      `"${task.title}" @ ${time} — we're rooting for u bestie 🌟`
+  },
+];
 
-    const morningTimeoutId = setTimeout(() => {
-      showNotification(
-        '🗓️ FocusFlow — Today\'s Plan',
-        `${morningMsg} (${todayTasks.length} task${todayTasks.length > 1 ? 's' : ''} scheduled)`
-      );
-    }, 500);
-    scheduledTimeouts.set('morning', morningTimeoutId);
+const getRandomMessage = () => {
+  return GENZ_MESSAGES[
+    Math.floor(Math.random() * GENZ_MESSAGES.length)
+  ];
+};
+
+const formatTimeStr = (startTime) => {
+  if (!startTime) return 'soon';
+  const [h, m] = startTime.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+};
+
+export const triggerTaskNotification = (task) => {
+  const msg = getRandomMessage();
+  const timeStr = formatTimeStr(task.startTime);
+  
+  const soundEnabled = localStorage.getItem('focusflow_notificationSound') !== 'false';
+  if (soundEnabled) {
+    playNotificationSound();
   }
 
-  // ── Per-task pre-notifications (5 min before each task start)
-  todayTasks.forEach((task, idx) => {
-    const [h, m] = task.startTime.split(':').map(Number);
-    const taskStart = new Date();
-    taskStart.setHours(h, m, 0, 0);
-
-    // Notify 2 minutes before
-    const notifyAt = new Date(taskStart.getTime() - 2 * 60 * 1000);
-    const delay = notifyAt.getTime() - now.getTime();
-
-    if (delay < 0) return; // Already past
-
-    const msgFn = randomPick(PRE_TASK_MESSAGES);
-    const body = msgFn(task.title);
-
-    const id = setTimeout(() => {
-      showNotification(`⏰ Starting soon — ${task.title}`, body);
-    }, delay);
-
-    scheduledTimeouts.set(`task-${idx}`, id);
-  });
-}
+  /* 1. Browser push notification */
+  if (Notification.permission === 'granted') {
+    const notification = new Notification(msg.title, {
+      body: msg.body(task, timeStr),
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: `task-${task.id}`,
+      requireInteraction: false,
+      silent: false,
+    });
+    
+    /* Click notification → open app */
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+    
+    /* Auto close after 8 seconds */
+    setTimeout(() => notification.close(), 8000);
+  }
+  
+  /* 2. In-app toast notification (sonner) */
+  window.dispatchEvent(new CustomEvent('taskNotificationDue', {
+    detail: { task, timeStr, msg }
+  }));
+};

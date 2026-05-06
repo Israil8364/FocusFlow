@@ -52,6 +52,9 @@ const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging 
       if (updates.note !== undefined) dbUpdates.note = updates.note;
       if (updates.estimatedPomodoros !== undefined) dbUpdates.estimated_pomodoros = updates.estimatedPomodoros;
       if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.scheduledDate !== undefined) dbUpdates.scheduled_date = updates.scheduledDate;
+      if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+      if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
 
       const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', task.id);
       if (error) throw error;

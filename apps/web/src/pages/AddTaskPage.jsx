@@ -31,6 +31,9 @@ const AddTaskPage = () => {
   const [activeColor, setActiveColor] = useState('red');
   const [activeProject, setActiveProject] = useState('work');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(new Date().toLocaleDateString('en-CA'));
+  const [scheduledFrom, setScheduledFrom] = useState('');
+  const [scheduledTo, setScheduledTo] = useState('');
 
   const selectedProject = PROJECTS.find(p => p.id === activeProject);
 
@@ -44,7 +47,10 @@ const AddTaskPage = () => {
     try {
       await addTask(taskText.trim(), 1, {
         category: activeColor,
-        note: note.trim()
+        note: note.trim(),
+        scheduledDate: scheduledFrom ? (scheduledDate || new Date().toISOString().split('T')[0]) : null,
+        startTime: scheduledFrom || null,
+        endTime: scheduledTo || null
       });
       toast.success('Task added successfully');
       navigate('/');
@@ -144,46 +150,47 @@ const AddTaskPage = () => {
               </p>
             </div>
 
-            {/* Free: locked project row | Premium: project picker */}
-            {!isPremium ? (
-              <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] bg-[var(--bg)] px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Lock className="w-4 h-4 text-[var(--text-muted)]" />
-                  <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">Add to project</p>
-                    <p className="text-xs font-medium" style={{ color: 'var(--accent)' }}>Unlock with Premium</p>
-                  </div>
+            {/* ── Schedule Section ── */}
+            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
+              <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-1.5 uppercase flex items-center gap-1.5">
+                Schedule (optional)
+              </p>
+
+              {/* Date */}
+              <div className="px-4 pb-2">
+                <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] mb-1 uppercase">Date</label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                />
+              </div>
+
+              {/* Time row */}
+              <div className="px-4 pb-3 flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] mb-1 uppercase">From</label>
+                  <input
+                    type="time"
+                    value={scheduledFrom}
+                    onChange={e => setScheduledFrom(e.target.value)}
+                    style={{ height: '44px' }}
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                  />
                 </div>
-                <button
-                  onClick={() => setIsPremium(true)}
-                  className="px-4 py-1.5 rounded-[var(--radius-pill)] bg-[var(--text-primary)] text-[var(--bg)] text-xs font-semibold transition-all hover:opacity-80 active:scale-95"
-                >
-                  Upgrade
-                </button>
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] mb-1 uppercase">To</label>
+                  <input
+                    type="time"
+                    value={scheduledTo}
+                    onChange={e => setScheduledTo(e.target.value)}
+                    style={{ height: '44px' }}
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)] transition-colors"
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
-                <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] px-4 pt-3 pb-2 uppercase">Project</p>
-                {PROJECTS.map((project, idx) => (
-                  <button
-                    key={project.id}
-                    onClick={() => setActiveProject(project.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-[var(--border)] ${idx < PROJECTS.length - 1 ? 'border-b border-[var(--border)]' : ''
-                      } ${activeProject === project.id ? 'bg-[var(--border)]' : ''}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: project.color }} />
-                      <span className="font-medium text-[var(--text-primary)]">{project.label}</span>
-                    </div>
-                    <span className="text-xs text-[var(--text-muted)]">{project.tasks} tasks</span>
-                  </button>
-                ))}
-                <button className="w-full flex items-center gap-2 px-4 py-3 text-sm text-[var(--text-muted)] border-t border-dashed border-[var(--border)] hover:text-[var(--text-primary)] transition-colors">
-                  <Plus className="w-4 h-4" />
-                  New project
-                </button>
-              </div>
-            )}
+            </div>
 
             {/* Add task CTA */}
             <button
