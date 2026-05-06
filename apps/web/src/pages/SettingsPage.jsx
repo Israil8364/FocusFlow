@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useSettings } from '@/contexts/SettingsContext.jsx';
 import { toast } from 'sonner';
 import { Save, Bell, BellOff, Monitor, Shield, Clock, Check, Sparkles, ChevronRight, Play, User, Mail, Camera, LogOut, Trash2 } from 'lucide-react';
-import { playNotificationSound, requestNotificationPermission, showNotification } from '@/utils/notificationManager.js';
+import { playNotificationSound, requestNotificationPermission, showNotification, notifyTimerComplete } from '@/utils/notificationManager.js';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from '@/components/ConfirmationModal.jsx';
 
@@ -404,6 +404,19 @@ const SettingsPage = () => {
             <div>
               <div className="font-medium">Timer Notifications</div>
               <div className="text-sm text-[var(--text-muted)]">Get alerts when focus or break sessions end</div>
+              <button
+                onClick={() => {
+                  notifyTimerComplete(
+                    'pomodoro', 
+                    localSettings.soundEnabled, 
+                    localSettings.soundType, 
+                    true
+                  );
+                }}
+                className="text-[10px] font-bold text-[var(--accent)] hover:underline flex items-center gap-1 mt-1"
+              >
+                <Bell className="w-3 h-3" /> Test session vibe check
+              </button>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 

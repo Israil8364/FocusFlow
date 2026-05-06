@@ -123,7 +123,12 @@ export function TimerProvider({ children }) {
 
     // ✅ Fire notification & sound IMMEDIATELY — never block on DB
     toast.success(`${mode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`);
-    notifyTimerComplete(mode, settings?.soundEnabled ?? true, settings?.soundType ?? 'bell');
+    notifyTimerComplete(
+      mode, 
+      settings?.soundEnabled ?? true, 
+      settings?.soundType ?? 'bell',
+      settings?.notificationsEnabled ?? true
+    );
 
     let currentCompleted = pomodorosCompleted;
 

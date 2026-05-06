@@ -73,15 +73,20 @@ export const requestNotificationPermission = async () => {
 
 export const showNotification = async (title, bodyOrOptions) => {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
+  
+  // If permission is not granted, we can't show it, but we can't request here (must be user action)
+  if (Notification.permission !== 'granted') {
+    console.warn('⚠️ Notifications not granted. Bestie, check your settings.');
+    return;
+  }
 
   const options = typeof bodyOrOptions === 'string' 
     ? { body: bodyOrOptions } 
     : bodyOrOptions;
 
   const finalOptions = {
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
     tag: 'focusflow-timer',
     renotify: true,
     vibrate: [200, 100, 200],
@@ -89,52 +94,54 @@ export const showNotification = async (title, bodyOrOptions) => {
   };
 
   try {
-    // 1. Always try Service Worker first — mandatory for mobile stability
+    // 1. Try Service Worker first (best for background/mobile)
     if ('serviceWorker' in navigator) {
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg && reg.showNotification) {
-          await reg.showNotification(title, finalOptions);
-          return;
-        }
-      } catch (swErr) {
-        console.warn('SW notification failed, falling back:', swErr);
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, finalOptions);
+        return;
       }
     }
 
-    // 2. Fallback to regular constructor for Desktop browsers
-    // Note: This will fail on most mobile browsers, hence the SW priority above
-    if (typeof Notification !== 'undefined') {
-      new Notification(title, finalOptions);
-    }
+    // 2. Fallback to Standard Notification constructor
+    new Notification(title, finalOptions);
   } catch (e) {
-    console.warn('❌ Could not show notification:', e);
+    console.warn('❌ Notification failed:', e);
+    // Last resort fallback
+    try {
+      new Notification(title, finalOptions);
+    } catch (innerE) {}
   }
 };
 
-export const notifyTimerComplete = (mode, soundEnabled, soundType = 'bell', notificationsEnabled = true) => {
-  const messages = {
-    pomodoro: {
-      title: '🍅 Focus session complete!',
-      body: 'Great work! Time for a well-earned break.',
-    },
-    shortBreak: {
-      title: `⚡ Break's over — let's go!`,
-      body: 'Your short break ended. Ready to crush it?',
-    },
-    longBreak: {
-      title: '🔋 Long break complete!',
-      body: `Fully recharged. Let's get back to it!`,
-    },
-  };
+const GENZ_TIMER_MESSAGES = {
+  pomodoro: [
+    { title: "🍅 session complete fr", body: "u actually locked in. time for a break bestie, no cap." },
+    { title: "✨ main character energy", body: "that focus session was a vibe. go grab a snack." },
+    { title: "🎯 target locked", body: "session done. u left no crumbs. take a break." },
+    { title: "🔥 u're on fire", body: "that's a whole session. don't burnout, chill for a bit." }
+  ],
+  shortBreak: [
+    { title: "⚡ break's over bestie", body: "recharged and ready to crush it. let's go!" },
+    { title: "📍 back to the grind", body: "break time is up. time to get that bread 🥖" },
+    { title: "🔔 buzz buzz", body: "ur short break is done. lock back in!" }
+  ],
+  longBreak: [
+    { title: "🔋 fully recharged", body: "that long break was much needed. session time?" },
+    { title: "🌟 energy peaking", body: "u're ready to slay another session. let's get it." }
+  ]
+};
 
-  const message = messages[mode] || messages.pomodoro;
+export const notifyTimerComplete = (mode, soundEnabled, soundType = 'bell', notificationsEnabled = true) => {
+  const modeKey = GENZ_TIMER_MESSAGES[mode] ? mode : 'pomodoro';
+  const variants = GENZ_TIMER_MESSAGES[modeKey];
+  const variant = variants[Math.floor(Math.random() * variants.length)];
 
   if (soundEnabled) {
     playNotificationSound(true, soundType);
   }
   
   if (notificationsEnabled) {
-    showNotification(message.title, message.body);
+    showNotification(variant.title, variant.body);
   }
 };
