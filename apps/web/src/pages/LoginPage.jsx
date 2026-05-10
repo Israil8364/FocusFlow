@@ -228,14 +228,14 @@ const LoginPage = () => {
         `}</style>
       </Helmet>
 
-      <div style={{ height: '100vh', display: 'flex', background: C.bg, fontFamily: 'Inter, sans-serif', overflow: 'hidden' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', background: C.bg, fontFamily: 'Inter, sans-serif' }}>
         <AuthLeftPanel />
 
         {/* Right form panel */}
         <div className="auth-right-panel" style={{
           flex: 1, background: C.bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '48px 64px', position: 'relative'
+          padding: '48px 24px', position: 'relative'
         }}>
 
           <div ref={containerRef} style={{ width: '100%', maxWidth: 420 }}>

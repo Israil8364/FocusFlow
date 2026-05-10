@@ -33,11 +33,11 @@ const BottomTabBar = () => {
   }, []);
 
   return (
-    <div className="sm:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+    <div className="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
       <nav
         ref={containerRef}
         className="flex items-center gap-1 p-2 bg-[rgba(245,246,248,0.85)] backdrop-blur-xl border border-[rgba(216,218,222,0.5)] rounded-[32px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] pointer-events-auto"
-        style={{ maxWidth: 'min(420px, 95vw)' }}
+        style={{ maxWidth: 'min(500px, 95vw)' }}
       >
         {navItems.map(item => {
           const isActive = location.pathname === item.path;

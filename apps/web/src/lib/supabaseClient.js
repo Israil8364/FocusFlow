@@ -14,7 +14,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storageKey: 'sb-focusflow-auth-v1'
+    storageKey: 'sb-focusflow-auth-v1',
+    lockType: 'null'
   }
 });
 

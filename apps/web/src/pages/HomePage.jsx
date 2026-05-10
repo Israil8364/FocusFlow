@@ -70,10 +70,14 @@ const HomePage = () => {
 
   useGSAP(() => {
     const tl = gsap.timeline();
-    tl.from(".gsap-header", { y: -20, opacity: 0, duration: 0.8, ease: "power3.out" })
-      .from(".gsap-timer", { scale: 0.95, opacity: 0, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.4")
-      .from(".gsap-tasks", { y: 20, opacity: 0, duration: 0.8, ease: "power3.out" }, "-=0.6")
-      .from(".gsap-stats > a, .gsap-stats > div", { y: 20, opacity: 0, duration: 0.6, stagger: 0.1, ease: "power3.out" }, "-=0.6");
+    tl.fromTo(".gsap-header", { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" })
+      .fromTo(".gsap-timer", { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.4")
+      .fromTo(".gsap-tasks", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, "-=0.6")
+      .fromTo(".gsap-stats > a, .gsap-stats > div", 
+        { y: 20, opacity: 0 }, 
+        { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 
+        "-=0.6"
+      );
   }, { scope: masterRef });
 
   useGSAP(() => {
@@ -239,7 +243,7 @@ const HomePage = () => {
         <title>Dashboard - FocusFlow</title>
       </Helmet>
 
-      <div ref={masterRef} className="max-w-5xl mx-auto p-4 md:p-8 lg:p-12 space-y-12 animate-in fade-in duration-300">
+      <div ref={masterRef} className="max-w-5xl mx-auto p-4 md:p-8 lg:p-12 space-y-12">
 
         <header className="gsap-header">
           <div className="flex items-center justify-between">

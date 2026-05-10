@@ -38,28 +38,34 @@ const PrivacyPage = React.lazy(() => import('@/pages/PrivacyPage.jsx'));
 const DashboardLayout = ({ children }) => {
   const layoutRef = useRef(null);
 
-  useGSAP(() => {
-    const tl = gsap.timeline();
-    // Only animate sidebar if it's potentially visible (md and up)
-    if (window.innerWidth >= 768) {
-      tl.from(".gsap-sidebar", { x: -30, opacity: 0, duration: 0.8, ease: "power3.out" });
-    }
-    tl.from(".gsap-main", { opacity: 0, y: 10, duration: 0.6, ease: "power2.out" }, "-=0.6");
-  }, { scope: layoutRef });
+  // useGSAP(() => {
+  //   const tl = gsap.timeline();
+  //   // Only animate sidebar if it's potentially visible (md and up)
+  //   if (window.innerWidth >= 768) {
+  //     tl.from(".gsap-sidebar", { x: -30, opacity: 0, duration: 0.8, ease: "power3.out" });
+  //   }
+  //   tl.fromTo(".gsap-main", 
+  //     { opacity: 0, y: 10 },
+  //     { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 
+  //     "-=0.6"
+  //   );
+  // }, { scope: layoutRef });
 
   return (
     <div ref={layoutRef} className="flex flex-col min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans">
       <GuestBanner />
       <Navbar />
       <div className="flex flex-1 relative">
-        <div className="gsap-sidebar hidden md:block sticky top-[64px] h-[calc(100vh-64px)]">
+        <div className="gsap-sidebar hidden lg:block sticky top-[64px] h-[calc(100vh-64px)] w-64 border-r border-[var(--border)]">
           <Sidebar />
         </div>
-        <main className="gsap-main flex-1 pb-[120px] md:pb-0">
+        <main className="gsap-main flex-1 w-full pb-[120px] lg:pb-0">
           {children}
         </main>
       </div>
-      <BottomTabBar />
+      <div className="lg:hidden">
+        <BottomTabBar />
+      </div>
     </div>
   );
 };

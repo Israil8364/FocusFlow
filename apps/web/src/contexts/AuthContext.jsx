@@ -16,10 +16,17 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(localStorage.getItem(GUEST_KEY) === 'true');
+  const refreshingRef = React.useRef(false);
+  const fetchingProfileRef = React.useRef(null);
 
   console.log('🛡️ AuthProvider Render - Loading:', loading, 'IsGuest:', isGuest);
 
   const fetchProfile = async (userId) => {
+    if (fetchingProfileRef.current === userId) {
+      console.log('🔍 fetchProfile already in progress for this user, skipping...');
+      return null;
+    }
+    fetchingProfileRef.current = userId;
     console.log('🔍 fetchProfile started for:', userId);
     try {
       // Create a promise that rejects after 20 seconds
@@ -45,10 +52,17 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('⚠️ Profile fetch error/timeout:', err.message);
       return null;
+    } finally {
+      fetchingProfileRef.current = null;
     }
   };
 
   const refreshUser = async (existingSession = null) => {
+    if (refreshingRef.current) {
+      console.log('🔄 refreshUser already in progress, skipping...');
+      return;
+    }
+    refreshingRef.current = true;
     console.log('🔄 refreshUser starting...');
     try {
       let session = existingSession;
@@ -124,6 +138,7 @@ export const AuthProvider = ({ children }) => {
       console.error('❌ refreshUser error:', err);
       return null;
     } finally {
+      refreshingRef.current = false;
       console.log('🔄 refreshUser complete');
     }
   };
