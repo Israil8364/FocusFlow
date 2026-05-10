@@ -73,7 +73,7 @@ const HomePage = () => {
     tl.from(".gsap-header", { y: -20, opacity: 0, duration: 0.8, ease: "power3.out" })
       .from(".gsap-timer", { scale: 0.95, opacity: 0, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.4")
       .from(".gsap-tasks", { y: 20, opacity: 0, duration: 0.8, ease: "power3.out" }, "-=0.6")
-      .from(".gsap-stats > div", { y: 20, opacity: 0, duration: 0.6, stagger: 0.1, ease: "power3.out" }, "-=0.6");
+      .from(".gsap-stats > a, .gsap-stats > div", { y: 20, opacity: 0, duration: 0.6, stagger: 0.1, ease: "power3.out" }, "-=0.6");
   }, { scope: masterRef });
 
   useGSAP(() => {

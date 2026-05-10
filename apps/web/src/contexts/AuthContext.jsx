@@ -22,10 +22,10 @@ export const AuthProvider = ({ children }) => {
   const fetchProfile = async (userId) => {
     console.log('🔍 fetchProfile started for:', userId);
     try {
-      // Create a promise that rejects after 15 seconds
+      // Create a promise that rejects after 20 seconds
       let timeoutId;
       const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Profile fetch timeout')), 15000);
+        timeoutId = setTimeout(() => reject(new Error('Profile fetch timeout')), 20000);
       });
 
       // Execute the query
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         // Use the session user immediately. Only fetch server-side user if we don't have a session
         // or if we explicitly need to verify the email confirmation status.
         let userToUse = session.user;
-        
+
         // Optimization: If this is an existing session, we trust its user data for the 'eager' load
         // This avoids hitting the Supabase Auth Lock which causes hangs in React 18
         if (!existingSession) {
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
             console.warn('⚠️ Could not fetch latest user status, using session user.');
           }
         }
-        
+
         console.log('👤 User verification status:', userToUse.email_confirmed_at ? 'Verified' : 'Pending');
 
         // Step 1: Set user immediately with session data (eager update)
@@ -83,18 +83,18 @@ export const AuthProvider = ({ children }) => {
           avatar: userToUse.user_metadata?.avatar_url || userToUse.user_metadata?.picture || '',
           verified: !!userToUse.email_confirmed_at
         };
-        
+
         setCurrentUser(basicUserData);
 
         // Step 2: Fetch profile in background with a safety timeout
         try {
           const profilePromise = fetchProfile(userToUse.id);
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Profile timeout')), 3000)
+            setTimeout(() => reject(new Error('Profile timeout')), 10000)
           );
 
           const profile = await Promise.race([profilePromise, timeoutPromise]);
-          
+
           if (profile) {
             const fullUserData = {
               id: userToUse.id,
@@ -108,15 +108,12 @@ export const AuthProvider = ({ children }) => {
             React.startTransition(() => {
               setCurrentUser(fullUserData);
             });
-            React.startTransition(() => {
-              setCurrentUser(fullUserData);
-            });
             return fullUserData;
           }
         } catch (profileError) {
           console.warn('⚠️ Profile fetch skipped/failed:', profileError.message);
         }
-        
+
         return basicUserData;
       } else {
         console.log('👤 No session found, clearing user');
@@ -140,6 +137,7 @@ export const AuthProvider = ({ children }) => {
     let initialized = false;
 
     // Safety timeout to ensure loading spinner doesn't stay forever
+    // Increased to 15s to handle slow Supabase cold starts or network issues
     const timeoutId = setTimeout(() => {
       if (mounted && !initialized) {
         console.warn('⚠️ Auth initialization timeout. Releasing UI.');
@@ -147,11 +145,11 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
         });
       }
-    }, 6000);
+    }, 15000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`🔔 Auth Event: ${event}`, session?.user?.email ? `User: ${session.user.email}` : 'No User');
-      
+
       try {
         // We always refresh user on these events or on the first event (initialization)
         if (!initialized || ['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
@@ -318,7 +316,7 @@ export const AuthProvider = ({ children }) => {
         console.error('❌ Supabase upsert error:', error);
         throw error;
       }
-      
+
       // Update local state immediately with a clean merge
       React.startTransition(() => {
         setCurrentUser(prev => {
