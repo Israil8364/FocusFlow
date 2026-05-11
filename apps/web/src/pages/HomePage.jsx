@@ -19,6 +19,7 @@ import { useGamification } from '@/contexts/GamificationContext.jsx';
 import XPBar from '@/components/gamification/XPBar.jsx';
 import StreakWidget from '@/components/gamification/StreakWidget.jsx';
 import DailyGoalRing from '@/components/gamification/DailyGoalRing.jsx';
+import DailyGoalCelebration from '@/components/DailyGoalCelebration.jsx';
 import {
   DndContext,
   closestCenter,
@@ -45,6 +46,9 @@ const HomePage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [stats, setStats] = useState({ pomodorosToday: 0, focusTimeToday: 0, dailyGoal: 60 });
   const [activeDragId, setActiveDragId] = useState(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  // Track whether we already fired the celebration this session
+  const celebrationFiredRef = useRef(false);
 
   const { settings } = useSettings();
   const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession, activeTask } = useTimerContext();
@@ -164,7 +168,14 @@ const HomePage = () => {
             focusTime += r.duration;
           }
         });
-        setStats({ pomodorosToday: pomos, focusTimeToday: focusTime, dailyGoal: userDailyGoalPomodoros ?? 4 });
+        const goal = userDailyGoalPomodoros ?? 4;
+        setStats({ pomodorosToday: pomos, focusTimeToday: focusTime, dailyGoal: goal });
+
+        // 🎉 Trigger celebration when daily goal is first reached
+        if (pomos >= goal && goal > 0 && !celebrationFiredRef.current) {
+          celebrationFiredRef.current = true;
+          setShowCelebration(true);
+        }
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -245,6 +256,10 @@ const HomePage = () => {
 
   return (
     <>
+      {/* 🎉 Daily goal celebration overlay */}
+      {showCelebration && (
+        <DailyGoalCelebration onDismiss={() => setShowCelebration(false)} />
+      )}
       <Helmet>
         <title>Dashboard - FocusFlow</title>
       </Helmet>
