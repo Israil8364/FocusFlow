@@ -3,7 +3,7 @@ import supabase from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useSettings } from '@/contexts/SettingsContext.jsx';
 import { toast } from 'sonner';
-import { notifyTimerComplete } from '@/utils/notificationManager';
+import { notifyTimerComplete, initializeAudio } from '@/utils/notificationManager';
 import { timerState } from '@/utils/timerState';
 
 const TimerContext = createContext();
@@ -33,6 +33,9 @@ export function TimerProvider({ children }) {
 
   const workerRef = useRef(null);
   const expectedEndTimeRef = useRef(null);
+  // Keep a live ref to settings so Web Worker callbacks don't read stale values
+  const settingsRef = useRef(settings);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
 
   useEffect(() => {
     // Spin up a Web Worker for reliable background interval pacing
@@ -79,6 +82,8 @@ export function TimerProvider({ children }) {
       if (!expectedEndTimeRef.current) {
         expectedEndTimeRef.current = Date.now() + timeLeft * 1000;
       }
+      // Unlock AudioContext on user start gesture so sound can play later automatically
+      initializeAudio();
       workerRef.current.postMessage('start');
       timerState.setIsRunning(true);
     } else {
@@ -122,12 +127,14 @@ export function TimerProvider({ children }) {
     timerState.setIsRunning(false);
 
     // ✅ Fire notification & sound IMMEDIATELY — never block on DB
-    toast.success(`${mode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`);
+    // Use settingsRef to avoid stale closure from Web Worker tick callback
+    const currentSettings = settingsRef.current;
+    toast.success(`${mode === 'pomodoro' ? '🍅 Focus session' : '☕ Break'} complete!`);
     notifyTimerComplete(
-      mode, 
-      settings?.soundEnabled ?? true, 
-      settings?.soundType ?? 'bell',
-      settings?.notificationsEnabled ?? true
+      mode,
+      currentSettings?.soundEnabled ?? true,
+      currentSettings?.soundType ?? 'bell',
+      currentSettings?.notificationsEnabled ?? true
     );
 
     let currentCompleted = pomodorosCompleted;
