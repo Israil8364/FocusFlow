@@ -68,38 +68,36 @@ const SettingsPage = () => {
   };
 
   const handleSave = async () => {
-    if (!currentUser) {
-      toast.error('Updates are not available in Guest Mode.');
-      return;
-    }
-
     setSaving(true);
     try {
-      // 1. Save Settings (Local Storage)
+      // 1. Save Settings (Local Storage) - Always available for everyone including guests
       await updateSettings(localSettings);
 
-      // 2. Save Profile (Supabase)
-      let avatarUrl = currentUser.avatar;
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${currentUser.id}/avatar.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile, { upsert: true });
+      // 2. Save Profile (Supabase) - Only if logged in
+      if (currentUser) {
+        let avatarUrl = currentUser.avatar;
+        if (avatarFile) {
+          const fileExt = avatarFile.name.split('.').pop();
+          const fileName = `${currentUser.id}/avatar.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, avatarFile, { upsert: true });
 
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-        avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+          if (uploadError) throw uploadError;
+          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+          avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+        }
+
+        const profileUpdates = {
+          full_name: name,
+          avatar_url: avatarUrl,
+          daily_goal: dailyGoal
+        };
+
+        await updateProfile(profileUpdates);
       }
-
-      const profileUpdates = {
-        full_name: name,
-        avatar_url: avatarUrl,
-        daily_goal: dailyGoal
-      };
-
-      await updateProfile(profileUpdates);
-      toast.success('Settings and profile updated');
+      
+      toast.success('Settings saved successfully');
     } catch (error) {
       toast.error('Failed to save changes');
       console.error(error);

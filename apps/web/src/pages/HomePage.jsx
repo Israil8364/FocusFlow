@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Helmet } from 'react-helmet';
-import { Plus } from 'lucide-react';
+import { Plus, Clock, Sparkles, Check } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import supabase from '@/lib/supabaseClient';

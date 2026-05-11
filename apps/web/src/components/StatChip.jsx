@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
-import { LucideIcon } from 'lucide-react';
 
 const StatChip = ({ label, value, subLabel, icon: Icon, color }) => {
   const valueRef = useRef(null);

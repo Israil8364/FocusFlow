@@ -23,7 +23,7 @@ export function SettingsProvider({ children }) {
       soundEnabled: true,
       soundType: 'bell',
       themeColor: 'theme-default',
-      notificationsEnabled: false,
+      notificationsEnabled: true,
       hourFormat: '24h'
     };
   });
