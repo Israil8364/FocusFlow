@@ -332,19 +332,17 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
 
-      // Update local state immediately with a clean merge
-      React.startTransition(() => {
-        setCurrentUser(prev => {
-          const newState = { ...prev, ...updates };
-          // Map database fields to local state fields
-          if (updates.full_name) newState.name = updates.full_name;
-          if (updates.avatar_url) newState.avatar = updates.avatar_url;
-          if (updates.daily_goal) newState.daily_goal = updates.daily_goal;
-          if (updates.onboarding_completed !== undefined) {
-            newState.onboarding_completed = updates.onboarding_completed;
-          }
-          return newState;
-        });
+      // Update local state immediately for snappy UI
+      setCurrentUser(prev => {
+        const newState = { ...prev, ...updates };
+        // Map database fields to local state fields consistently
+        if (updates.full_name !== undefined) newState.name = updates.full_name;
+        if (updates.avatar_url !== undefined) newState.avatar = updates.avatar_url;
+        if (updates.daily_goal !== undefined) newState.daily_goal = updates.daily_goal;
+        if (updates.onboarding_completed !== undefined) {
+          newState.onboarding_completed = updates.onboarding_completed;
+        }
+        return newState;
       });
 
       return true;

@@ -50,10 +50,16 @@ const HomePage = () => {
   const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession, activeTask } = useTimerContext();
   const { todayMinutes, currentStreak } = useGamification();
   // daily_goal = number of Pomodoros; each is 25 min. Fall back to settings or 120 min.
-  const userDailyGoalPomodoros = currentUser?.daily_goal ?? null;
-  const goalMinutes = userDailyGoalPomodoros
-    ? userDailyGoalPomodoros * 25
-    : (settings?.daily_goal_minutes ?? 120);
+  const userDailyGoalPomodoros = currentUser?.daily_goal ?? 4;
+  const goalMinutes = userDailyGoalPomodoros * 25;
+  
+  const formatGoalTime = (mins) => {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m target`;
+    if (h > 0) return `${h}h target`;
+    return `${m}m target`;
+  };
   const masterRef = useRef(null);
   const timerRingRef = useRef(null);
   const plusIconRef = useRef(null);
@@ -368,16 +374,30 @@ const HomePage = () => {
 
         <section className="gsap-stats grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
           <Link to="/history" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
-            <StatChip label="Pomodoros Today" value={stats.pomodorosToday.toString()} />
+            <StatChip 
+              label="Pomodoros Today" 
+              value={stats.pomodorosToday.toString()} 
+              icon={Clock}
+              color="bg-orange-50 text-orange-600"
+              subLabel="Completed sessions"
+            />
           </Link>
           <Link to="/analytics" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
-            <StatChip label="Focus Time" value={`${stats.focusTimeToday}m`} />
+            <StatChip 
+              label="Focus Time" 
+              value={`${stats.focusTimeToday}m`} 
+              icon={Sparkles}
+              color="bg-blue-50 text-blue-600"
+              subLabel="Deep work minutes"
+            />
           </Link>
           <Link to="/timer" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
             <StatChip
               label="Daily Goal"
-              value={`${Math.min(Math.round((stats.focusTimeToday / stats.dailyGoal) * 100), 100)}%`}
-              subLabel={stats.focusTimeToday >= stats.dailyGoal ? 'Goal reached!' : 'Almost there!'}
+              value={`${Math.min(Math.round((stats.pomodorosToday / (stats.dailyGoal || 1)) * 100), 100)}%`}
+              icon={Check}
+              color="bg-emerald-50 text-emerald-600"
+              subLabel={formatGoalTime(goalMinutes)}
             />
           </Link>
         </section>
