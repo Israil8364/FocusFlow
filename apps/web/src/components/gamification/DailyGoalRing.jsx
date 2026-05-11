@@ -110,7 +110,7 @@ const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
               animationData={animData}
               loop={false}
               autoplay
-              style={{ width: 72, height: 72, marginTop: 2 }}
+              style={{ width: 68, height: 68 }}
             />
           ) : completed ? (
             <span className="text-2xl">✅</span>
