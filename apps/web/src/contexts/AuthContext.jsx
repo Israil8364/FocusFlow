@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const refreshingRef = React.useRef(false);
   const fetchingProfileRef = React.useRef(null);
 
-  console.log('🛡️ AuthProvider Render - Loading:', loading, 'IsGuest:', isGuest);
+
 
   const fetchProfile = async (userId) => {
     if (fetchingProfileRef.current === userId) {
@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
     fetchingProfileRef.current = userId;
-    console.log('🔍 fetchProfile started for:', userId);
     try {
       // Create a promise that rejects after 20 seconds
       let timeoutId;
@@ -42,12 +41,10 @@ export const AuthProvider = ({ children }) => {
         .eq('id', userId)
         .maybeSingle();
 
-      console.log('⏳ Starting Promise.race for profile...');
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
       clearTimeout(timeoutId);
 
       if (error) throw error;
-      console.log('✅ Profile fetch result:', data ? 'Found' : 'Not found');
       return data;
     } catch (err) {
       console.error('⚠️ Profile fetch error/timeout:', err.message);
@@ -58,12 +55,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUser = async (existingSession = null) => {
-    if (refreshingRef.current) {
-      console.log('🔄 refreshUser already in progress, skipping...');
-      return;
-    }
+    if (refreshingRef.current) return;
     refreshingRef.current = true;
-    console.log('🔄 refreshUser starting...');
     try {
       let session = existingSession;
       if (!session) {
@@ -118,10 +111,7 @@ export const AuthProvider = ({ children }) => {
               avatar: profile.avatar_url || basicUserData.avatar,
               verified: !!userToUse.email_confirmed_at
             };
-            console.log('👤 Full user profile merged:', fullUserData.name);
-            React.startTransition(() => {
-              setCurrentUser(fullUserData);
-            });
+            setCurrentUser(fullUserData);
             return fullUserData;
           }
         } catch (profileError) {
@@ -130,7 +120,6 @@ export const AuthProvider = ({ children }) => {
 
         return basicUserData;
       } else {
-        console.log('👤 No session found, clearing user');
         setCurrentUser(null);
         return null;
       }
@@ -139,9 +128,9 @@ export const AuthProvider = ({ children }) => {
       return null;
     } finally {
       refreshingRef.current = false;
-      console.log('🔄 refreshUser complete');
     }
   };
+
 
   const refreshAuth = async () => {
     return await refreshUser();
@@ -163,7 +152,6 @@ export const AuthProvider = ({ children }) => {
     }, 15000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`🔔 Auth Event: ${event}`, session?.user?.email ? `User: ${session.user.email}` : 'No User');
 
       try {
         // We always refresh user on these events or on the first event (initialization)

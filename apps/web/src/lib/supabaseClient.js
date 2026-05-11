@@ -5,8 +5,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Supabase credentials missing! Check your .env file.');
-} else {
-  console.log('🔌 Supabase Client Initializing with URL:', supabaseUrl);
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -15,7 +13,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'sb-focusflow-auth-v1',
-    lockType: 'null'
+    // Use localStorage locking (default) - prevents multi-tab lock contention
+    flowType: 'implicit',
   }
 });
 
