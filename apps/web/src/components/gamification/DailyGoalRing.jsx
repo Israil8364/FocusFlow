@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Target } from 'lucide-react';
 import Lottie from 'lottie-react';
+import achievementData from '@/assets/1st_achievment.json';
 
 /* Circular progress ring for daily focus goal */
 const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
@@ -12,16 +13,7 @@ const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
   const circ = 2 * Math.PI * radius;
   const completed = pct >= 100;
 
-  const [animData, setAnimData] = useState(null);
   const prevCompletedRef = useRef(false);
-
-  // Load Lottie JSON from public folder
-  useEffect(() => {
-    fetch('/lottie/1st_achievment.json')
-      .then(r => r.json())
-      .then(setAnimData)
-      .catch(() => { });
-  }, []);
 
   // Animate the ring stroke on progress change
   useEffect(() => {
@@ -109,7 +101,7 @@ const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
             <Lottie
               animationData={achievementData}
               loop={true}
-              autoplay
+              autoplay={true}
               style={{ width: 58, height: 58 }}
             />
           ) : (
@@ -143,8 +135,8 @@ const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
 
       <style>{`
         @keyframes ring-pulse {
-          0%, 100% { r: 42; opacity: 0.4; }
-          50%       { r: 46; opacity: 0.1; }
+          0%, 100% { opacity: 0.4; }
+          50%       { opacity: 0.1; }
         }
       `}</style>
     </div>
