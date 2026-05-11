@@ -1,15 +1,29 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { Target } from 'lucide-react';
+import Lottie from 'lottie-react';
 
 /* Circular progress ring for daily focus goal */
 const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
   const ringRef = useRef(null);
+  const containerRef = useRef(null);
   const pct = Math.min(100, goalMinutes > 0 ? (todayMinutes / goalMinutes) * 100 : 0);
   const radius = 42;
   const circ = 2 * Math.PI * radius;
   const completed = pct >= 100;
 
+  const [animData, setAnimData] = useState(null);
+  const prevCompletedRef = useRef(false);
+
+  // Load Lottie JSON from public folder
+  useEffect(() => {
+    fetch('/lottie/1st_achievment.json')
+      .then(r => r.json())
+      .then(setAnimData)
+      .catch(() => {});
+  }, []);
+
+  // Animate the ring stroke on progress change
   useEffect(() => {
     if (!ringRef.current) return;
     const target = circ - (pct / 100) * circ;
@@ -19,6 +33,26 @@ const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
       ease: 'power3.out',
     });
   }, [pct, circ]);
+
+  // Pulse + scale burst when goal first hits 100%
+  useEffect(() => {
+    if (completed && !prevCompletedRef.current && containerRef.current) {
+      prevCompletedRef.current = true;
+      gsap.fromTo(
+        containerRef.current,
+        { scale: 1 },
+        {
+          scale: 1.08,
+          duration: 0.35,
+          ease: 'power2.out',
+          yoyo: true,
+          repeat: 3,
+          onComplete: () => gsap.to(containerRef.current, { scale: 1, duration: 0.3 }),
+        }
+      );
+    }
+    if (!completed) prevCompletedRef.current = false;
+  }, [completed]);
 
   const hrs = Math.floor(todayMinutes / 60);
   const mins = todayMinutes % 60;
@@ -32,6 +66,7 @@ const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
 
   return (
     <div
+      ref={containerRef}
       className="flex items-center gap-4 p-4 rounded-[var(--radius-lg)] border border-[var(--border)]"
       style={{ background: 'var(--card)' }}
     >
@@ -50,34 +85,70 @@ const DailyGoalRing = ({ todayMinutes = 0, goalMinutes = 120 }) => {
             strokeLinecap="round"
             strokeDasharray={circ}
             strokeDashoffset={circ}
-            style={{ filter: `drop-shadow(0 0 6px ${ringColor}88)` }}
+            style={{
+              filter: `drop-shadow(0 0 ${completed ? '10px' : '6px'} ${ringColor}${completed ? 'bb' : '88'})`,
+              transition: 'filter 0.5s ease',
+            }}
           />
+          {/* Glowing pulse ring when completed */}
+          {completed && (
+            <circle
+              cx="50" cy="50" r={radius}
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="2"
+              opacity="0.4"
+              style={{ animation: 'ring-pulse 2s ease-in-out infinite' }}
+            />
+          )}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {completed
-            ? <span className="text-2xl">✅</span>
-            : <Target className="w-5 h-5 text-[var(--text-muted)]" />
-          }
+
+        {/* Center content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-full">
+          {completed && animData ? (
+            <Lottie
+              animationData={animData}
+              loop={false}
+              autoplay
+              style={{ width: 72, height: 72, marginTop: 2 }}
+            />
+          ) : completed ? (
+            <span className="text-2xl">✅</span>
+          ) : (
+            <Target className="w-5 h-5 text-[var(--text-muted)]" />
+          )}
         </div>
       </div>
 
       {/* Text */}
       <div className="flex-1 min-w-0">
         <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Daily Goal</p>
-        <p className="text-2xl font-black text-[var(--text-primary)] leading-none">{timeStr}</p>
+        <p className={`text-2xl font-black leading-none transition-colors duration-500 ${completed ? 'text-green-500' : 'text-[var(--text-primary)]'}`}>
+          {timeStr}
+        </p>
         <p className="text-xs text-[var(--text-muted)] mt-1">of {goalStr} target</p>
-        {/* Progress bar text */}
+        {/* Progress bar */}
         <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg)' }}>
           <div
             className="h-full rounded-full transition-all duration-1000"
             style={{
               width: `${pct}%`,
               background: `linear-gradient(90deg, ${ringColor}cc, ${ringColor})`,
+              boxShadow: completed ? `0 0 8px ${ringColor}88` : 'none',
             }}
           />
         </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1">{Math.round(pct)}% complete</p>
+        <p className={`text-[10px] mt-1 font-semibold transition-colors duration-500 ${completed ? 'text-green-500' : 'text-[var(--text-muted)]'}`}>
+          {completed ? '🎉 Goal crushed!' : `${Math.round(pct)}% complete`}
+        </p>
       </div>
+
+      <style>{`
+        @keyframes ring-pulse {
+          0%, 100% { r: 42; opacity: 0.4; }
+          50%       { r: 46; opacity: 0.1; }
+        }
+      `}</style>
     </div>
   );
 };

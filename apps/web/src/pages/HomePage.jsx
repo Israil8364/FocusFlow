@@ -19,7 +19,6 @@ import { useGamification } from '@/contexts/GamificationContext.jsx';
 import XPBar from '@/components/gamification/XPBar.jsx';
 import StreakWidget from '@/components/gamification/StreakWidget.jsx';
 import DailyGoalRing from '@/components/gamification/DailyGoalRing.jsx';
-import DailyGoalCelebration from '@/components/DailyGoalCelebration.jsx';
 import {
   DndContext,
   closestCenter,
@@ -46,9 +45,6 @@ const HomePage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [stats, setStats] = useState({ pomodorosToday: 0, focusTimeToday: 0, dailyGoal: 60 });
   const [activeDragId, setActiveDragId] = useState(null);
-  const [showCelebration, setShowCelebration] = useState(false);
-  // Track whether we already fired the celebration this session
-  const celebrationFiredRef = useRef(false);
 
   const { settings } = useSettings();
   const { mode, setMode, timeLeft, isRunning, setIsRunning, duration, sessionCompletedSignal, modes, skipSession, activeTask } = useTimerContext();
@@ -56,7 +52,7 @@ const HomePage = () => {
   // daily_goal = number of Pomodoros; each is 25 min. Fall back to settings or 120 min.
   const userDailyGoalPomodoros = currentUser?.daily_goal ?? 4;
   const goalMinutes = userDailyGoalPomodoros * 25;
-  
+
   const formatGoalTime = (mins) => {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
@@ -83,9 +79,9 @@ const HomePage = () => {
     tl.fromTo(".gsap-header", { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" })
       .fromTo(".gsap-timer", { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 1, ease: "elastic.out(1, 0.75)" }, "-=0.4")
       .fromTo(".gsap-tasks", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, "-=0.6")
-      .fromTo(".gsap-stats > a, .gsap-stats > div", 
-        { y: 20, opacity: 0 }, 
-        { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 
+      .fromTo(".gsap-stats > a, .gsap-stats > div",
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: "power3.out" },
         "-=0.6"
       );
   }, { scope: masterRef });
@@ -168,14 +164,7 @@ const HomePage = () => {
             focusTime += r.duration;
           }
         });
-        const goal = userDailyGoalPomodoros ?? 4;
-        setStats({ pomodorosToday: pomos, focusTimeToday: focusTime, dailyGoal: goal });
-
-        // 🎉 Trigger celebration when daily goal is first reached
-        if (pomos >= goal && goal > 0 && !celebrationFiredRef.current) {
-          celebrationFiredRef.current = true;
-          setShowCelebration(true);
-        }
+        setStats({ pomodorosToday: pomos, focusTimeToday: focusTime, dailyGoal: userDailyGoalPomodoros ?? 4 });
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -256,10 +245,6 @@ const HomePage = () => {
 
   return (
     <>
-      {/* 🎉 Daily goal celebration overlay */}
-      {showCelebration && (
-        <DailyGoalCelebration onDismiss={() => setShowCelebration(false)} />
-      )}
       <Helmet>
         <title>Dashboard - FocusFlow</title>
       </Helmet>
@@ -389,18 +374,18 @@ const HomePage = () => {
 
         <section className="gsap-stats grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
           <Link to="/history" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
-            <StatChip 
-              label="Pomodoros Today" 
-              value={stats.pomodorosToday.toString()} 
+            <StatChip
+              label="Pomodoros Today"
+              value={stats.pomodorosToday.toString()}
               icon={Clock}
               color="bg-orange-50 text-orange-600"
               subLabel="Completed sessions"
             />
           </Link>
           <Link to="/analytics" className="block focus:outline-none focus-visible:ring-2 ring-[var(--text-primary)] rounded-[var(--radius-md)]">
-            <StatChip 
-              label="Focus Time" 
-              value={`${stats.focusTimeToday}m`} 
+            <StatChip
+              label="Focus Time"
+              value={`${stats.focusTimeToday}m`}
               icon={Sparkles}
               color="bg-blue-50 text-blue-600"
               subLabel="Deep work minutes"
