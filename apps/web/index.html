@@ -11,19 +11,6 @@
 </head>
 
 <body>
-    <div id="error-log" style="position:fixed; z-index:9999; background:red; color:white; top:0; left:0; width:100%; white-space:pre-wrap; padding: 10px; display:none;"></div>
-    <script>
-      window.addEventListener('error', (event) => {
-        const log = document.getElementById('error-log');
-        log.style.display = 'block';
-        log.innerHTML += event.error?.stack || event.message || String(event) + '<br/>';
-      });
-      window.addEventListener('unhandledrejection', (event) => {
-        const log = document.getElementById('error-log');
-        log.style.display = 'block';
-        log.innerHTML += 'Promise rejection: ' + (event.reason?.stack || event.reason) + '<br/>';
-      });
-    </script>
 	<div id="root"></div>
 	<script type="module" src="/src/main.jsx"></script>
 </body>
