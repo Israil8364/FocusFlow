@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -188,16 +189,19 @@ const TaskManager = ({
         </button>
       </form>
 
-      <TaskFormModal
-        open={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingTask(null);
-        }}
-        onSave={handleSaveEdit}
-        task={editingTask}
-        isEditing={true}
-      />
+      {isEditModalOpen && ReactDOM.createPortal(
+        <TaskFormModal
+          open={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingTask(null);
+          }}
+          onSave={handleSaveEdit}
+          task={editingTask}
+          isEditing={true}
+        />,
+        document.body
+      )}
     </div>
   );
 };

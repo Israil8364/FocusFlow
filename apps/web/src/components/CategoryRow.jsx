@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { Check, Trash2, Edit2, GripVertical, Target, Clock } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -176,13 +176,16 @@ const CategoryRow = ({ task, onToggle, onDelete, isDragging: externalIsDragging 
         </div>
       </div>
 
-      <TaskFormModal
-        open={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleEditSave}
-        task={task}
-        isEditing={true}
-      />
+      {isEditModalOpen && ReactDOM.createPortal(
+        <TaskFormModal
+          open={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={handleEditSave}
+          task={task}
+          isEditing={true}
+        />,
+        document.body
+      )}
     </>
   );
 };
